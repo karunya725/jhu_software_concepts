@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Homepage main section -->
+<section class="home-hero">
+    <div class="page-container">
+        <div class="row align-items-start home-layout">
+
+            <!-- Left side: bio text -->
+            <div class="col-6 home-hero-text">
+
+                <h1 class="home-title">
+                    About me
+                </h1>
+
+                <p class="home-subtitle">
+                    Aspiring Data Scientist & Python Developer
+                </p>
+
+                <p class="home-description">
+                    I am an aspiring data scientist and Python developer with a background in data analytics. My previous work involved creating dashboards, working with business data, and helping teams understand information more clearly.
+                </p>
+
+                <p class="home-description">
+                    I am currently expanding my technical skills through coursework in Python, software development, and data science. This website will document my projects as I continue building a stronger foundation in programming, web development, and practical data-driven problem solving.
+                </p>
+            </div>
+
+            <!-- Right side: image and update card -->
+            <div class="col-6">
+                <div class="profile-image-container">
+                    <div class="profile-image-background"></div>
+
+                    <img src="{{ url_for('static', filename='profile.jpg') }}"
+                         alt="Photo of Karunya"
+                         class="profile-image">
+
+                    <div class="update-card">
+                        <p class="update-card-label">Latest Update:</p>
+
+                        <p class="update-card-title">
+                            <a href="https://github.com/karunya725/jhu_software_concepts/tree/main/Module%201"
+                               target="_blank"
+                               class="update-card-link">
+                                Building Personal Website using Flask
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+{% endblock %}
