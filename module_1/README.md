@@ -1,6 +1,6 @@
 ## Module 1 Assignment: Personal Website
 
-### This assignment involves developing a personal website using Python, Flask, HTML and CSS which includes:
+This assignment involves developing a personal website using Python, Flask, HTML and CSS which includes:
 - A homepage with a short biography and profile image
 - A contact page with email and LinkedIn information
 - A projects page with details about the Module 1 project
