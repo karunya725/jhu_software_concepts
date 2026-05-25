@@ -1,0 +1,291 @@
+/* General website styling */
+body {
+    background-color: #f7f1ea;
+    color: #2f2a26;
+    font-family: "Inter", Arial, sans-serif;
+}
+
+/* Shared centered page container */
+.page-container {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding-left: 48px;
+    padding-right: 48px;
+}
+
+/* Slightly wider version used for the homepage two-column layout */
+.page-container-wide {
+    max-width: 1450px;
+}
+
+/* Top navigation bar */
+.site-navbar {
+    background-color: #7a6670;
+    border-bottom: 1px solid #6b5962;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+/* Navbar inner layout */
+.site-navbar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Website name on the left side of the navbar */
+.site-logo {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: #fffaf5;
+    text-decoration: none;
+}
+
+/* Website name hover effect */
+.site-logo:hover {
+    color: #f3d6c6;
+}
+
+/* Navigation links container */
+.site-nav {
+    display: flex;
+    gap: 36px;
+}
+
+/* Navigation links */
+.site-nav-link {
+    color: #fffaf5;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 0;
+    text-decoration: none;
+}
+
+/* Navbar hover effect */
+.site-nav-link:hover {
+    color: #f3d6c6;
+}
+
+/* Current active navbar tab */
+.nav-link-active {
+    color: #fffaf5 !important;
+    border-bottom: 1px solid #fffaf5;
+}
+
+/* Homepage background */
+.home-hero {
+    background-color: #f7f1ea;
+}
+
+/* Homepage layout */
+.home-layout {
+    min-height: 0;
+    padding-top: 45px;
+    padding-bottom: 60px;
+    margin: 0;
+}
+
+/* Homepage text column */
+.home-hero-text {
+    padding-right: 60px;
+}
+
+/* Small uppercase section label */
+.section-tag {
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: #9a6a53;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
+
+/* Main homepage title */
+.home-title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 118px;
+    line-height: 0.9;
+    font-weight: 600;
+    color: #2f2a26;
+    margin-bottom: 24px;
+}
+
+/* Homepage subtitle */
+.home-subtitle {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 32px;
+    color: #6e6258;
+    margin-bottom: 26px;
+}
+
+/* Homepage paragraph text */
+.home-description {
+    max-width: 620px;
+    color: #5c554e;
+    font-size: 17px;
+    line-height: 1.8;
+}
+
+/* Primary button styling */
+.primary-button {
+    background-color: #2f2a26;
+    color: #ffffff;
+    border-radius: 0;
+    padding: 13px 30px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-size: 13px;
+    border: 1px solid #2f2a26;
+}
+
+/* Primary button hover effect */
+.primary-button:hover {
+    background-color: #9a6a53;
+    border-color: #9a6a53;
+    color: #ffffff;
+}
+
+/* Profile image area */
+.profile-image-container {
+    position: relative;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 0;
+    padding: 24px;
+}
+
+/* Background block behind the profile image */
+.profile-image-background {
+    position: absolute;
+    top: 0;
+    right: 10px;
+    width: 82%;
+    height: 400px;
+    background-color: #e8d8ca;
+    z-index: 0;
+}
+
+/* Profile image */
+.profile-image {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 400px;
+    object-fit: cover;
+    object-position: center top;
+    display: block;
+}
+
+/* Small update card shown over the image */
+.update-card {
+    position: absolute;
+    z-index: 2;
+    left: 0;
+    top: 410px;
+    background-color: #fffaf5;
+    border: 1px solid #ded2c5;
+    padding: 22px 28px;
+    min-width: 340px;
+}
+
+/* Small label inside update card */
+.update-card-label {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #9a6a53;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+/* Main text inside update card */
+.update-card-title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 24px;
+    color: #2f2a26;
+    margin-bottom: 0;
+}
+
+/* Link inside update card */
+.update-card-link {
+    color: #2f2a26;
+    text-decoration: none;
+}
+
+/* Link hover effect inside update card */
+.update-card-link:hover {
+    color: #9a6a53;
+    text-decoration: underline;
+}
+
+/* Standard layout for Contact and Projects pages */
+.content-page {
+    background-color: #f7f1ea;
+    min-height: 78vh;
+    padding-top: 90px;
+    padding-bottom: 90px;
+}
+
+/* Keeps Contact and Projects content aligned with the homepage */
+.content-wrapper {
+    max-width: 1240px;
+    margin: 0 auto;
+}
+
+/* Large title for Contact and Projects pages */
+.content-title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 76px;
+    line-height: 1;
+    font-weight: 600;
+    color: #2f2a26;
+    margin-bottom: 24px;
+}
+
+/* Description text for Contact and Projects pages */
+.content-description {
+    max-width: 800px;
+    color: #5c554e;
+    font-size: 18px;
+    line-height: 1.8;
+}
+
+/* Information card used on Contact and Projects pages */
+.info-card {
+    background-color: #fffaf5;
+    border: 1px solid #ded2c5;
+    padding: 34px;
+    color: #2f2a26;
+}
+
+/* Small label inside an information card */
+.info-card-label {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #9a6a53;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+/* Heading inside an information card */
+.info-card-title {
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 34px;
+    color: #2f2a26;
+    margin-bottom: 18px;
+}
+
+/* General link styling */
+a {
+    color: #9a6a53;
+}
+
+/* General link hover effect */
+a:hover {
+    color: #2f2a26;
+}
