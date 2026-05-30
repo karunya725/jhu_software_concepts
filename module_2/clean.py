@@ -50,6 +50,20 @@ def _make_raw_text(raw_record):
 
     return " | ".join(str(part) for part in raw_parts)
 
+def _calculate_total_gre_score(gre_qr_score, gre_vr_score):
+    """
+    Calculate total GRE score as Quantitative Reasoning + Verbal Reasoning.
+
+    Returns None if either score is missing or cannot be converted to an integer.
+    """
+    if gre_qr_score is None or gre_vr_score is None:
+        return None
+
+    try:
+        return int(gre_qr_score) + int(gre_vr_score)
+    except ValueError:
+        return None
+
 
 def _parse_entry(raw_record):
     """
@@ -69,11 +83,12 @@ def _parse_entry(raw_record):
         "rejection_date": raw_record.get("rejectedDate"),
         "program_start": raw_record.get("season"),
         "student_type": raw_record.get("status"),
-        "gre_score": raw_record.get("greq"),
-        "gre_v_score": raw_record.get("grev"),
+        "gre_qr_score": raw_record.get("greq"),
+        "gre_vr_score": raw_record.get("grev"),
+        "gre_score": _calculate_total_gre_score(raw_record.get("greq"),raw_record.get("grev")),
         "degree_type": raw_record.get("level"),
         "gpa": raw_record.get("ugpa"),
-        "gre_aw": raw_record.get("grew"),
+        "gre_aw_score": raw_record.get("grew"),
         "gradcafe_id": applicant_id,
         "raw_text": _make_raw_text(raw_record),
         "raw_record": raw_record,
@@ -136,6 +151,50 @@ def check_duplicate_ids(records, id_key, label):
     if duplicate_count > 0:
         print(f"Warning: duplicate IDs were found in {label}.")
 
+def print_data_quality_summary(cleaned_records):
+    """
+    Print a simple missing-value summary for the required assignment fields.
+    """
+    required_fields = [
+    "program_name",
+    "university",
+    "comments",
+    "date_added",
+    "entry_url",
+    "applicant_status",
+    "acceptance_date",
+    "rejection_date",
+    "program_start",
+    "student_type",
+    "gre_qr_score",
+    "gre_vr_score",
+    "gre_score",
+    "degree_type",
+    "gpa",
+    "gre_aw_score",
+    "raw_text",
+    "raw_record",
+]
+
+    total_records = len(cleaned_records)
+
+    print("\nData quality summary:")
+    print(f"Total cleaned records checked: {total_records}")
+
+    for field in required_fields:
+        missing_count = 0
+
+        for record in cleaned_records:
+            value = record.get(field)
+
+            if value is None or value == "":
+                missing_count += 1
+
+        present_count = total_records - missing_count
+
+        print(f"{field}: {present_count} present, {missing_count} missing")
+
+
 
 if __name__ == "__main__":
     raw_data = load_data(RAW_OUTPUT_FILE)
@@ -148,3 +207,4 @@ if __name__ == "__main__":
 
     print(f"Final cleaned record count: {len(cleaned_data)}")
     check_duplicate_ids(cleaned_data, "gradcafe_id", "Cleaned data")
+    print_data_quality_summary(cleaned_data)
