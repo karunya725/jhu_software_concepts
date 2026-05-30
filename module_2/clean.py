@@ -26,10 +26,7 @@ def _build_entry_url(applicant_id):
 
 def _make_raw_text(raw_record):
     """
-    Preserve a raw traceability string from the original Grad Cafe record.
-
-    This helps satisfy the assignment requirement to preserve original raw
-    applicant listing text for traceability and reproducibility.
+    Preserve a raw traceability string from the original Grad Cafe record for traceability and reproducibility.
     """
     raw_parts = [
         f"School: {raw_record.get('school')}",

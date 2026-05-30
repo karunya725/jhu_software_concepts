@@ -57,12 +57,12 @@ def fetch_page(url):
     request = Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 (compatible; JHU student scraper; educational use)"
+            "User-Agent": "Mozilla/5.0 (compatible; student data collection script; educational use)"
         },
     )
 
     try:
-        with urlopen(request, timeout=20) as response:
+        with urlopen(request, timeout=45) as response:
             status_code = response.status
             content_type = response.headers.get("Content-Type", "")
 
@@ -92,6 +92,28 @@ def fetch_page(url):
     except TimeoutError:
         print("Request timed out.")
         return None
+    
+def fetch_page_with_retries(url, max_retries=3, delay_seconds=10):
+    """
+    Fetch a page with limited polite retries.
+
+    This handles temporary timeouts or connection issues. It does not bypass
+    blocks, rate limits, CAPTCHAs, login requirements, or access controls.
+    """
+    for attempt_number in range(1, max_retries + 1):
+        print(f"Request attempt {attempt_number} of {max_retries}")
+
+        page_html = fetch_page(url)
+
+        if page_html is not None:
+            return page_html
+
+        if attempt_number < max_retries:
+            print(f"Request failed. Waiting {delay_seconds} seconds before retrying...")
+            time.sleep(delay_seconds)
+
+    print("All retry attempts failed. Stopping scrape.")
+    return None
 
 
 def _extract_page_json(page_html):
@@ -155,23 +177,39 @@ def load_data(filename=RAW_OUTPUT_FILE):
         return json.load(file)
 
 
-def scrape_data(max_pages=50):
+def scrape_data(start_page=1, max_pages=1550, target_records=30000):
     """
-    Pull multiple test pages from Grad Cafe and save raw applicant records.
+    Pull multiple pages from Grad Cafe and save raw applicant records.
 
-    This version starts small: 5 pages should give about 100 records.
+    This version supports restarting from page 1 without creating duplicate
+    records, because it loads existing saved records and tracks Grad Cafe IDs.
     """
-    all_raw_records = []
+    output_path = Path(RAW_OUTPUT_FILE)
 
-    for page_number in range(1, max_pages + 1):
+    if output_path.exists():
+        all_raw_records = load_data(RAW_OUTPUT_FILE)
+        print(f"Loaded {len(all_raw_records)} existing raw records from {RAW_OUTPUT_FILE}")
+    else:
+        all_raw_records = []
+
+    # Build a set of IDs that have already been saved.
+    seen_ids = set()
+
+    for record in all_raw_records:
+        record_id = record.get("id")
+
+        if record_id is not None:
+            seen_ids.add(record_id)
+
+    for page_number in range(start_page, max_pages + 1):
         print(f"\nScraping page {page_number} of {max_pages}...")
 
         url = build_gradcafe_url(page=page_number, program="Computer Science")
 
         # Polite delay before each request.
-        time.sleep(2)
+        time.sleep(3)
 
-        page_html = fetch_page(url)
+        page_html = fetch_page_with_retries(url)
 
         if page_html is None:
             print("No HTML was collected. Stopping scrape.")
@@ -189,13 +227,29 @@ def scrape_data(max_pages=50):
             print("No raw records found. Stopping scrape.")
             break
 
+        new_records = []
+
+        for record in raw_records:
+            record_id = record.get("id")
+
+            if record_id not in seen_ids:
+                new_records.append(record)
+                seen_ids.add(record_id)
+
         print(f"Found {len(raw_records)} raw applicant records on page {page_number}.")
+        print(f"New records added from this page: {len(new_records)}")
 
-        all_raw_records.extend(raw_records)
+        all_raw_records.extend(new_records)
 
-    save_data(all_raw_records, RAW_OUTPUT_FILE)
+        # Save progress after every page.
+        save_data(all_raw_records, RAW_OUTPUT_FILE)
+        print(f"Progress saved. Total raw records so far: {len(all_raw_records)}")
 
-    print(f"\nTotal raw records collected: {len(all_raw_records)}")
+        if len(all_raw_records) >= target_records:
+            print("Reached at least 30,000 records. Stopping scrape.")
+            break
+
+    print(f"\nFinal raw records collected: {len(all_raw_records)}")
 
     return all_raw_records
 
