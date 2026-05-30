@@ -115,9 +115,36 @@ def load_data(filename=RAW_OUTPUT_FILE):
 
     with input_path.open("r", encoding="utf-8") as file:
         return json.load(file)
+    
+def check_duplicate_ids(records, id_key, label):
+    """
+    Check whether records contain duplicate IDs.
+    """
+    ids = []
+
+    for record in records:
+        ids.append(record.get(id_key))
+
+    total_records = len(ids)
+    unique_ids = len(set(ids))
+    duplicate_count = total_records - unique_ids
+
+    print(f"{label} total records: {total_records}")
+    print(f"{label} unique IDs: {unique_ids}")
+    print(f"{label} duplicate records: {duplicate_count}")
+
+    if duplicate_count > 0:
+        print(f"Warning: duplicate IDs were found in {label}.")
 
 
 if __name__ == "__main__":
     raw_data = load_data(RAW_OUTPUT_FILE)
+    print(f"Loaded {len(raw_data)} raw records from {RAW_OUTPUT_FILE}")
+
+    check_duplicate_ids(raw_data, "id", "Raw data")
+
     cleaned_data = clean_data(raw_data)
     save_data(cleaned_data, CLEAN_OUTPUT_FILE)
+
+    print(f"Final cleaned record count: {len(cleaned_data)}")
+    check_duplicate_ids(cleaned_data, "gradcafe_id", "Cleaned data")

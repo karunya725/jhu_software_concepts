@@ -155,7 +155,7 @@ def load_data(filename=RAW_OUTPUT_FILE):
         return json.load(file)
 
 
-def scrape_data(max_pages=5):
+def scrape_data(max_pages=50):
     """
     Pull multiple test pages from Grad Cafe and save raw applicant records.
 
