@@ -1,0 +1,9 @@
+applicant_data_100_test.json
+applicant_data_1000_test.json
+debug_gradcafe_page.html
+llm_extend_100_test.json
+raw_applicant_data_1000_test.json
+
+
+llm_hosting/models/
+*.gguf
