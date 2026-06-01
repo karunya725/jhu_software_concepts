@@ -1,7 +1,6 @@
 Name: Karunya, knaraya7
 
-Module Info:
-Module 2 - Web Scraping
+Module Info: Module 2 - Web Scraping
 Due Date: 31 May 2026, 11:59PM
 
 Approach:
