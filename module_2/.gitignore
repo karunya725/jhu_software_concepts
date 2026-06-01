@@ -1,9 +1,29 @@
+# Temporary test data
 applicant_data_100_test.json
 applicant_data_1000_test.json
-debug_gradcafe_page.html
-llm_extend_100_test.json
+applicant_data_1000_part1.json
+applicant_data_1000_part2.json
 raw_applicant_data_1000_test.json
 
+# Temporary debug files
+debug_gradcafe_page.html
 
+# Temporary LLM test outputs
+llm_extend_100_test.json
+llm_extend_1000_part1.json
+llm_extend_1000_part2.json
+llm_extend_1000_test.json
+
+# Temporary full-run split files
+applicant_data_part1.json
+applicant_data_part2.json
+llm_extend_part1.json
+llm_extend_part2.json
+combine_parts.py
+
+# Temporary JSONL outputs
+*.jsonl
+
+# Local downloaded LLM model files
 llm_hosting/models/
 *.gguf

@@ -1,7 +1,7 @@
 """
 Module 2 - Data Cleaning
 
-This file converts raw Grad Cafe applicant records into structured applicant dictionaries.
+This file converts raw Grad Cafe applicant records into cleaned applicant dictionaries
 """
 
 from pathlib import Path
@@ -19,14 +19,14 @@ def _build_entry_url(applicant_id):
     Build the public Grad Cafe result URL for a specific applicant entry.
     """
     if applicant_id is None:
-        return None
+        return ""
 
     return urljoin(BASE_URL, f"result/{applicant_id}")
 
 
 def _make_raw_text(raw_record):
     """
-    Preserve a raw traceability string from the original Grad Cafe record for traceability and reproducibility.
+    Preserve a raw traceability string from the original Grad Cafe record.
     """
     raw_parts = [
         f"School: {raw_record.get('school')}",
@@ -47,6 +47,7 @@ def _make_raw_text(raw_record):
 
     return " | ".join(str(part) for part in raw_parts)
 
+
 def _calculate_total_gre_score(gre_qr_score, gre_vr_score):
     """
     Calculate total GRE score as Quantitative Reasoning + Verbal Reasoning.
@@ -58,34 +59,74 @@ def _calculate_total_gre_score(gre_qr_score, gre_vr_score):
 
     try:
         return int(gre_qr_score) + int(gre_vr_score)
-    except ValueError:
+    except (ValueError, TypeError):
         return None
+
+
+def _format_program_field(raw_record):
+    """
+    Combining program and university.
+    """
+    program_name = raw_record.get("program") or ""
+    university = raw_record.get("school") or ""
+
+    if program_name and university:
+        return f"{program_name}, {university}"
+
+    return program_name or university
+
+
+def _format_date_added(raw_record):
+    """
+    Formatting date
+    Eg: "Added on March 31, 2024"
+    """
+    added_on_label = raw_record.get("added_on_label")
+
+    if added_on_label:
+        return f"Added on {added_on_label}"
+
+    created_at = raw_record.get("created_at")
+    
+    return created_at or ""
+
+
+def _format_gpa(raw_record):
+    """
+    Matching GPA field.
+    Eg: "GPA 3.88"
+    """
+    gpa = raw_record.get("ugpa")
+
+    if gpa:
+        return f"GPA {gpa}"
+
+    return ""
 
 
 def _parse_entry(raw_record):
     """
-    Convert one raw Grad Cafe applicant record into the assignment's
-    required JSON structure.
+    Convert one raw Grad Cafe applicant record into cleaned JSON structure.
     """
     applicant_id = raw_record.get("id")
 
+    gre_qr_score = raw_record.get("greq")
+    gre_vr_score = raw_record.get("grev")
+    gre_aw_score = raw_record.get("grew")
+    gre_score = _calculate_total_gre_score(gre_qr_score, gre_vr_score)
+
     return {
-        "program_name": raw_record.get("program"),
-        "university": raw_record.get("school"),
-        "comments": raw_record.get("notes"),
-        "date_added": raw_record.get("created_at"),
-        "entry_url": _build_entry_url(applicant_id),
-        "applicant_status": raw_record.get("decision"),
-        "acceptance_date": raw_record.get("acceptedDate"),
-        "rejection_date": raw_record.get("rejectedDate"),
-        "program_start": raw_record.get("season"),
-        "student_type": raw_record.get("status"),
-        "gre_qr_score": raw_record.get("greq"),
-        "gre_vr_score": raw_record.get("grev"),
-        "gre_score": _calculate_total_gre_score(raw_record.get("greq"),raw_record.get("grev")),
-        "degree_type": raw_record.get("level"),
-        "gpa": raw_record.get("ugpa"),
-        "gre_aw_score": raw_record.get("grew"),
+        "program": _format_program_field(raw_record),
+        "comments": raw_record.get("notes") or "",
+        "date_added": _format_date_added(raw_record),
+        "url": _build_entry_url(applicant_id),
+        "status": raw_record.get("decision_label") or raw_record.get("decision") or "",
+        "term": raw_record.get("season") or "",
+        "US/International": raw_record.get("status") or "",
+        "GRE Score": gre_score,
+        "GRE AW": gre_aw_score,
+        "GPA": _format_gpa(raw_record),
+        "Degree": raw_record.get("level") or "",
         "gradcafe_id": applicant_id,
         "raw_text": _make_raw_text(raw_record),
         "raw_record": raw_record,
@@ -94,7 +135,7 @@ def _parse_entry(raw_record):
 
 def clean_data(raw_records):
     """
-    Convert raw Grad Cafe records into structured applicant dictionaries.
+    Convert raw Grad Cafe records into cleaned applicant dictionaries.
     """
     cleaned_records = []
 
@@ -127,7 +168,8 @@ def load_data(filename=RAW_OUTPUT_FILE):
 
     with input_path.open("r", encoding="utf-8") as file:
         return json.load(file)
-    
+
+
 def check_duplicate_ids(records, id_key, label):
     """
     Check whether records contain duplicate IDs.
@@ -148,30 +190,27 @@ def check_duplicate_ids(records, id_key, label):
     if duplicate_count > 0:
         print(f"Warning: duplicate IDs were found in {label}.")
 
+
 def print_data_quality_summary(cleaned_records):
     """
-    Print a simple missing-value summary for the required assignment fields.
+    Print a simple missing-value summary for the cleaned fields.
     """
     required_fields = [
-    "program_name",
-    "university",
-    "comments",
-    "date_added",
-    "entry_url",
-    "applicant_status",
-    "acceptance_date",
-    "rejection_date",
-    "program_start",
-    "student_type",
-    "gre_qr_score",
-    "gre_vr_score",
-    "gre_score",
-    "degree_type",
-    "gpa",
-    "gre_aw_score",
-    "raw_text",
-    "raw_record",
-]
+        "program",
+        "comments",
+        "date_added",
+        "url",
+        "status",
+        "term",
+        "US/International",
+        "GRE Score",
+        "GRE AW",
+        "GPA",
+        "Degree",
+        "gradcafe_id",
+        "raw_text",
+        "raw_record",
+    ]
 
     total_records = len(cleaned_records)
 
@@ -190,7 +229,6 @@ def print_data_quality_summary(cleaned_records):
         present_count = total_records - missing_count
 
         print(f"{field}: {present_count} present, {missing_count} missing")
-
 
 
 if __name__ == "__main__":
