@@ -205,6 +205,58 @@ def main():
                 f"for PhD Computer Science using LLM-generated fields: {q9}"
             )
 
+            # Q10 - (Possible) Additional question 1
+            print("\n10. Which universities appear most competitive in Fall 2026 based on low acceptance rate?")
+            q10 = fetch_all(cursor, """
+                SELECT
+                    llm_generated_university,
+                    COUNT(*) AS total_entries,
+                    SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
+                    ROUND(
+                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) / COUNT(*),
+                        2
+                    ) AS acceptance_rate
+                FROM applicants
+                WHERE term = 'Fall 2026'
+                AND llm_generated_university IS NOT NULL
+                GROUP BY llm_generated_university
+                HAVING COUNT(*) >= 10
+                ORDER BY acceptance_rate ASC, total_entries DESC
+                LIMIT 10;
+            """)
+
+            for row in q10:
+                print(
+                    f"    {row[0]}: {row[2]} accepted out of {row[1]} "
+                    f"({row[3]}% acceptance rate)"
+                )
+
+
+            # Q11 - (Possible) Additional question 2
+            print("\n11. Are international applicants over or under represented among Fall 2026 Computer Science applicants?")
+            q11 = fetch_all(cursor, """
+                SELECT
+                    us_or_international,
+                    COUNT(*) AS total_entries,
+                    ROUND(
+                        100.0 * COUNT(*) / SUM(COUNT(*)) OVER (),
+                        2
+                    ) AS percent_of_fall_2026_cs_entries
+                FROM applicants
+                WHERE term = 'Fall 2026'
+                AND llm_generated_program ILIKE '%%Computer Science%%'
+                AND us_or_international IS NOT NULL
+                AND us_or_international NOT IN ('0')
+                GROUP BY us_or_international
+                ORDER BY total_entries DESC;
+            """)
+
+            for row in q11:
+                print(
+                    f"    {row[0]}: {row[1]} entries "
+                    f"({row[2]}% of Fall 2026 Computer Science entries)"
+                )
+
             print("\n" + "=" * 50)
             print("Analysis complete.\n")
 
