@@ -1,1 +1,8 @@
 query_data_test.py
+
+# Temporary JSONL outputs
+*.jsonl
+
+# Local downloaded LLM model files
+module_3/module_2_code/llm_hosting/models/
+*.gguf
