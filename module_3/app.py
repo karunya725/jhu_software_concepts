@@ -27,6 +27,16 @@ DB_PORT = "5432"
 BASE_DIR = Path(__file__).resolve().parent
 PULL_DATA_SCRIPT = BASE_DIR / "module_2_code" / "pull_new_data.py"
 
+NORMALIZED_GPA_SQL = """
+    CASE
+        WHEN gpa IS NULL THEN NULL
+        WHEN gpa > 2 AND gpa <= 4 THEN gpa
+        WHEN gpa > 4 AND gpa <= 5 THEN (gpa / 5.0) * 4.0
+        WHEN gpa > 5 AND gpa <= 10 THEN (gpa / 10.0) * 4.0
+        ELSE NULL
+    END
+"""
+
 
 def get_connection():
     return psycopg.connect(
@@ -246,7 +256,6 @@ def get_dashboard_results(filters):
             """, params)
             dashboard["filtered_jhu_masters_cs_count"] = cursor.fetchone()[0]
 
-            # Assignment-style filtered Q10:
             # Most competitive universities within current filter
             cursor.execute(f"""
                 SELECT
@@ -267,24 +276,24 @@ def get_dashboard_results(filters):
             """, params)
             dashboard["filtered_competitive_universities"] = cursor.fetchall()
 
-            # Assignment-style filtered Q11:
-            # Nationality distribution within current filter
+            # Degree acceptance rate within current filter
             cursor.execute(f"""
                 SELECT
-                    us_or_international,
+                    degree,
                     COUNT(*) AS total_entries,
+                    SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
                     ROUND(
-                        100.0 * COUNT(*) / SUM(COUNT(*)) OVER (),
+                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) / COUNT(*),
                         2
-                    ) AS percentage
+                    ) AS acceptance_rate
                 FROM applicants
                 {where_sql}
-                {"AND" if where_sql else "WHERE"} us_or_international IS NOT NULL
-                AND us_or_international NOT IN ('0')
-                GROUP BY us_or_international
-                ORDER BY total_entries DESC;
+                {"AND" if where_sql else "WHERE"} degree IS NOT NULL
+                GROUP BY degree
+                HAVING COUNT(*) >= 5
+                ORDER BY acceptance_rate DESC, total_entries DESC;
             """, params)
-            dashboard["filtered_nationality_distribution"] = cursor.fetchall()
+            dashboard["filtered_degree_acceptance_rates"] = cursor.fetchall()
 
     return dashboard
 
@@ -306,24 +315,36 @@ def get_analysis_results():
             results["percent_international"] = fetch_one(cursor, """
                 SELECT ROUND(
                     100.0 * SUM(
-                        CASE 
-                            WHEN us_or_international NOT IN ('American', 'Other', '0')
-                            AND us_or_international IS NOT NULL
-                            THEN 1 ELSE 0 
+                        CASE
+                            WHEN us_or_international = 'International'
+                                OR COALESCE(comments, '') ILIKE '%%Canadian%%'
+                                OR COALESCE(comments, '') ILIKE '%%International%%'
+                            THEN 1 ELSE 0
                         END
-                    ) / COUNT(*),
+                    ) 
+                    /
+                    SUM(
+                        CASE
+                            WHEN us_or_international IN ('American', 'International', 'Other')
+                                OR COALESCE(comments, '') ILIKE '%%Canadian%%'
+                                OR COALESCE(comments, '') ILIKE '%%International%%'
+                                OR COALESCE(comments, '') ILIKE '%%US Citizen%%'
+                                OR COALESCE(comments, '') ILIKE '%%American%%'
+                            THEN 1 ELSE 0
+                        END
+                    ),
                     2
                 )
                 FROM applicants;
             """)
 
             # Q3
-            q3 = fetch_all(cursor, """
+            q3 = fetch_all(cursor, f"""
                 SELECT
-                    AVG(CASE WHEN gpa BETWEEN 0.1 AND 4.0 THEN gpa END) AS average_gpa,
+                    AVG({NORMALIZED_GPA_SQL}) AS average_gpa,
                     AVG(CASE WHEN gre BETWEEN 130 AND 170 THEN gre END) AS average_gre_quant,
                     AVG(CASE WHEN gre_v BETWEEN 130 AND 170 THEN gre_v END) AS average_gre_verbal,
-                    AVG(CASE WHEN gre_aw BETWEEN 0.5 AND 6.0 THEN gre_aw END) AS average_gre_aw
+                    AVG(CASE WHEN gre_aw BETWEEN 0.1 AND 6.0 THEN gre_aw END) AS average_gre_aw
                 FROM applicants;
             """)[0]
 
@@ -335,12 +356,15 @@ def get_analysis_results():
             }
 
             # Q4
-            results["american_fall_2026_avg_gpa"] = fetch_one(cursor, """
-                SELECT ROUND(AVG(gpa)::numeric, 2)
+            results["american_fall_2026_avg_gpa"] = fetch_one(cursor, f"""
+                SELECT ROUND(AVG({NORMALIZED_GPA_SQL})::numeric, 2)
                 FROM applicants
                 WHERE term = 'Fall 2026'
-                AND us_or_international = 'American'
-                AND gpa BETWEEN 0.1 AND 4.0;
+                AND (
+                    us_or_international = 'American'
+                    OR comments ILIKE '%%US Citizen%%'
+                )
+                AND {NORMALIZED_GPA_SQL} IS NOT NULL;
             """)
 
             # Q5
@@ -356,12 +380,12 @@ def get_analysis_results():
             """)
 
             # Q6
-            results["accepted_fall_2026_avg_gpa"] = fetch_one(cursor, """
-                SELECT ROUND(AVG(gpa)::numeric, 2)
+            results["accepted_fall_2026_avg_gpa"] = fetch_one(cursor, f"""
+                SELECT ROUND(AVG({NORMALIZED_GPA_SQL})::numeric, 2)
                 FROM applicants
                 WHERE term = 'Fall 2026'
                 AND status = 'Accepted'
-                AND gpa BETWEEN 0.1 AND 4.0;
+                AND {NORMALIZED_GPA_SQL} IS NOT NULL;
             """)
 
             # Q7
@@ -429,21 +453,21 @@ def get_analysis_results():
             """)
 
             # Q11
-            results["cs_nationality_distribution"] = fetch_all(cursor, """
+            results["degree_acceptance_rates"] = fetch_all(cursor, """
                 SELECT
-                    us_or_international,
+                    degree,
                     COUNT(*) AS total_entries,
+                    SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
                     ROUND(
-                        100.0 * COUNT(*) / SUM(COUNT(*)) OVER (),
+                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) / COUNT(*),
                         2
-                    ) AS percent_of_fall_2026_cs_entries
+                    ) AS acceptance_rate
                 FROM applicants
                 WHERE term = 'Fall 2026'
-                AND llm_generated_program ILIKE '%%Computer Science%%'
-                AND us_or_international IS NOT NULL
-                AND us_or_international NOT IN ('0')
-                GROUP BY us_or_international
-                ORDER BY total_entries DESC;
+                AND degree IS NOT NULL
+                GROUP BY degree
+                HAVING COUNT(*) >= 10
+                ORDER BY acceptance_rate DESC;
             """)
 
     return results

@@ -159,24 +159,26 @@
                 </article>
 
                 <article class="card wide">
-                    <h2>11. Fall 2026 Computer Science Applicant Nationality Distribution</h2>
+                    <h2>11. Fall 2026 Acceptance Rate by Degree Type</h2>
                     <p class="note">
-                        This shows the share of Fall 2026 Computer Science entries by applicant nationality category.
+                        This compares Fall 2026 acceptance rates across degree types with at least 10 entries.
                     </p>
                     <table>
                         <thead>
                             <tr>
-                                <th>Applicant Type</th>
+                                <th>Degree Type</th>
                                 <th>Total Entries</th>
-                                <th>Percent</th>
+                                <th>Accepted</th>
+                                <th>Acceptance Rate</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for row in results.cs_nationality_distribution %}
+                            {% for row in results.degree_acceptance_rates %}
                             <tr>
                                 <td>{{ row[0] }}</td>
                                 <td>{{ row[1] }}</td>
-                                <td>{{ row[2] }}%</td>
+                                <td>{{ row[2] }}</td>
+                                <td>{{ row[3] }}%</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -368,26 +370,32 @@
                     </article>
 
                     <article class="card wide">
-                        <h2>Nationality Distribution in Current Filter</h2>
+                        <h2>Degree Acceptance Rate in Current Filter</h2>
+                        <p class="note">
+                            This compares acceptance rates by degree type within the selected filters.
+                        </p>
                         <table>
                             <thead>
                                 <tr>
-                                    <th>Applicant Type</th>
+                                    <th>Degree Type</th>
                                     <th>Total Entries</th>
-                                    <th>Percent</th>
+                                    <th>Accepted</th>
+                                    <th>Acceptance Rate</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for row in dashboard.filtered_nationality_distribution %}
+                                {% for row in dashboard.filtered_degree_acceptance_rates %}
                                 <tr>
                                     <td>{{ row[0] }}</td>
                                     <td>{{ row[1] }}</td>
-                                    <td>{{ row[2] }}%</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>{{ row[3] }}%</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </article>
+
                 </div>
             </section>
         </section>

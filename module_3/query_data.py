@@ -232,29 +232,29 @@ def main():
                 )
 
 
-            # Q11 - (Possible) Additional question 2
-            print("\n11. Are international applicants over or under represented among Fall 2026 Computer Science applicants?")
+            # Q11 - Additional question 2
+            print("\n11. Which degree type had the highest Fall 2026 acceptance rate?")
             q11 = fetch_all(cursor, """
                 SELECT
-                    us_or_international,
+                    degree,
                     COUNT(*) AS total_entries,
+                    SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
                     ROUND(
-                        100.0 * COUNT(*) / SUM(COUNT(*)) OVER (),
+                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) / COUNT(*),
                         2
-                    ) AS percent_of_fall_2026_cs_entries
+                    ) AS acceptance_rate
                 FROM applicants
                 WHERE term = 'Fall 2026'
-                AND llm_generated_program ILIKE '%%Computer Science%%'
-                AND us_or_international IS NOT NULL
-                AND us_or_international NOT IN ('0')
-                GROUP BY us_or_international
-                ORDER BY total_entries DESC;
+                AND degree IS NOT NULL
+                GROUP BY degree
+                HAVING COUNT(*) >= 10
+                ORDER BY acceptance_rate DESC;
             """)
 
             for row in q11:
                 print(
-                    f"    {row[0]}: {row[1]} entries "
-                    f"({row[2]}% of Fall 2026 Computer Science entries)"
+                    f"    {row[0]}: {row[2]} accepted out of {row[1]} "
+                    f"({row[3]}% acceptance rate)"
                 )
 
             print("\n" + "=" * 50)
