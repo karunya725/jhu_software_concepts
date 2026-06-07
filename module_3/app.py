@@ -1,8 +1,18 @@
+from pathlib import Path
+import subprocess
+import sys
+import threading
+
 import psycopg
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, flash
 
 
 app = Flask(__name__)
+
+app.secret_key = "gradcafe-module-3-secret-key"
+
+PULL_DATA_RUNNING = False
+PULL_DATA_LOCK = threading.Lock()
 
 
 # -----------------------------
@@ -13,6 +23,9 @@ DB_USER = "postgres"
 DB_PASSWORD = "jscm3@56psg"
 DB_HOST = "localhost"
 DB_PORT = "5432"
+
+BASE_DIR = Path(__file__).resolve().parent
+PULL_DATA_SCRIPT = BASE_DIR / "module_2_code" / "pull_new_data.py"
 
 
 def get_connection():
@@ -436,6 +449,31 @@ def get_analysis_results():
     return results
 
 
+def run_pull_data_pipeline():
+    """
+    Runs the incremental Pull Data pipeline in the background.
+    """
+    global PULL_DATA_RUNNING
+
+    try:
+        print("Starting Pull Data pipeline from Flask...")
+
+        subprocess.run(
+            [sys.executable, str(PULL_DATA_SCRIPT)],
+            check=True,
+            cwd=BASE_DIR
+        )
+
+        print("Pull Data pipeline finished successfully.")
+
+    except subprocess.CalledProcessError as error:
+        print(f"Pull Data pipeline failed: {error}")
+
+    finally:
+        with PULL_DATA_LOCK:
+            PULL_DATA_RUNNING = False
+
+
 @app.route("/")
 def index():
     filters = {
@@ -455,8 +493,45 @@ def index():
         results=results,
         filters=filters,
         filter_options=filter_options,
-        dashboard=dashboard
+        dashboard=dashboard,
+        pull_data_running=PULL_DATA_RUNNING
     )
+
+@app.route("/pull-data", methods=["POST"])
+def pull_data():
+    """
+    Starts the incremental data pull pipeline.
+    """
+    global PULL_DATA_RUNNING
+
+    with PULL_DATA_LOCK:
+        if PULL_DATA_RUNNING:
+            flash("Pull Data is already running. Please wait before starting another request.")
+            return redirect(url_for("index", tab="explore"))
+
+        PULL_DATA_RUNNING = True
+
+    pipeline_thread = threading.Thread(target=run_pull_data_pipeline)
+    pipeline_thread.start()
+
+    flash(
+        "Pull Data has started. The app is checking Grad Café for new records. "
+        "This may take a while if new records need LLM enrichment."
+    )
+
+    return redirect(url_for("index", tab="explore"))
+
+@app.route("/update-analysis", methods=["POST"])
+def update_analysis():
+    """
+    Refreshes analysis unless Pull Data is currently running.
+    """
+    if PULL_DATA_RUNNING:
+        flash("Analysis cannot be updated while Pull Data is running. Please wait and try again.")
+        return redirect(url_for("index", tab="explore"))
+
+    flash("Analysis updated using the current PostgreSQL database.")
+    return redirect(url_for("index"))
 
 if __name__ == "__main__":
     app.run(debug=True)

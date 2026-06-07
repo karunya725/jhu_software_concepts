@@ -15,14 +15,56 @@
                 This webpage displays dynamic SQL analysis results from the Grad Café applicant database.
             </p>
 
-            <div class="tabs">
-                <button class="tab-button active" onclick="showTab('assignment-tab', this)">
-                    Assignment Analysis
-                </button>
-                <button class="tab-button" onclick="showTab('explore-tab', this)">
-                    Explore the Dataset
-                </button>
+            <div class="nav-actions-row">
+                <div class="tabs">
+                    <button class="tab-button active" onclick="showTab('assignment-tab', this)">
+                        Assignment Analysis
+                    </button>
+                    <button class="tab-button" onclick="showTab('explore-tab', this)">
+                        Exploring the Dataset
+                    </button>
+                </div>
+
+                <div class="nav-divider"></div>
+
+                <div class="data-actions">
+                    <form method="post" action="{{ url_for('pull_data') }}">
+                        <button 
+                            type="submit" 
+                            class="action-button pull-button"
+                            {% if pull_data_running %}disabled{% endif %}
+                        >
+                            {% if pull_data_running %}
+                                Pulling Data...
+                            {% else %}
+                                Pull Data
+                            {% endif %}
+                        </button>
+                    </form>
+
+                    <form method="post" action="{{ url_for('update_analysis') }}">
+                        <button 
+                            type="submit" 
+                            class="action-button update-button"
+                            {% if pull_data_running %}disabled{% endif %}
+                        >
+                            Update Analysis
+                        </button>
+                    </form>
+                </div>
             </div>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+
         </header>
 
         <!-- Assignment Analysis Tab -->
@@ -368,6 +410,12 @@
             const exploreButton = document.querySelectorAll(".tab-button")[1];
             showTab("explore-tab", exploreButton);
         }
+
+        {% if pull_data_running %}
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000);
+        {% endif %}
     </script>
 </body>
 </html>
