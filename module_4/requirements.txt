@@ -6,3 +6,5 @@ llama-cpp-python
 pytest
 pytest-cov
 huggingface_hub
+sphinx
+sphinx-rtd-theme
