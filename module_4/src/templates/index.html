@@ -32,6 +32,7 @@
                         <button 
                             type="submit" 
                             class="action-button pull-button"
+                            data-testid="pull-data-btn"
                             {% if pull_data_running %}disabled{% endif %}
                         >
                             {% if pull_data_running %}
@@ -46,12 +47,15 @@
                         <button 
                             type="submit" 
                             class="action-button update-button"
+                            data-testid="update-analysis-btn"
                             {% if pull_data_running %}disabled{% endif %}
                         >
                             Update Analysis
                         </button>
                     </form>
                 </div>
+
+                <div id="action-message" class="flash-messages"></div>
             </div>
 
             {% with messages = get_flashed_messages() %}
@@ -74,18 +78,19 @@
                 <article class="card">
                     <h2>1. Fall 2026 Applicant Count</h2>
                     <p class="card-question">How many entries do you have in your database who have applied for Fall 2026?</p>
-                    <p class="answer">{{ results.fall_2026_count }}</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.fall_2026_count }}</p>
                 </article>
 
                 <article class="card">
                     <h2>2. Percent International</h2>
                     <p class="card-question">What percentage of entries are from international students (not American or Other) (to two decimal places)?</p>
-                    <p class="answer">{{ results.percent_international }}%</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.percent_international }}%</p>
                 </article>
 
                 <article class="card">
                     <h2>3. Average Applicant Metrics</h2>
                     <p class="card-question">What is the average GPA, GRE, GRE V, GRE AW of applicants who provide these metrics?</p>
+                    <p class="answer-label"><strong>Answer:</strong></p>
                     <ul>
                         <li>Average GPA: <strong>{{ results.average_metrics.gpa }}</strong></li>
                         <li>Average GRE Quant: <strong>{{ results.average_metrics.gre_quant }}</strong></li>
@@ -97,37 +102,37 @@
                 <article class="card">
                     <h2>4. Average GPA of American Students in Fall 2026</h2>
                     <p class="card-question">What is their average GPA of American students in Fall 2026?</p>
-                    <p class="answer">{{ results.american_fall_2026_avg_gpa }}</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.american_fall_2026_avg_gpa }}</p>
                 </article>
 
                 <article class="card">
                     <h2>5. Fall 2026 Acceptance Percent</h2>
                     <p class="card-question">What percent of entries for Fall 2026 are Acceptances (to two decimal places)?</p>
-                    <p class="answer">{{ results.fall_2026_acceptance_percent }}%</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.fall_2026_acceptance_percent }}%</p>
                 </article>
 
                 <article class="card">
                     <h2>6. Average GPA of Accepted Fall 2026 Applicants</h2>
                     <p class="card-question">What is the average GPA of applicants who applied for Fall 2026 who are Acceptances?</p>
-                    <p class="answer">{{ results.accepted_fall_2026_avg_gpa }}</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.accepted_fall_2026_avg_gpa }}</p>
                 </article>
 
                 <article class="card">
                     <h2>7. JHU Master's Computer Science Count</h2>
                     <p class="card-question">How many entries are from applicants who applied to JHU for a masters degrees in Computer Science?</p>
-                    <p class="answer">{{ results.jhu_masters_cs_count }}</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.jhu_masters_cs_count }}</p>
                 </article>
 
                 <article class="card">
                     <h2>8. 2026 Acceptances Using Downloaded Fields</h2>
                     <p class="card-question">How many entries from 2026 are acceptances from applicants who applied to Georgetown University, MIT, Stanford University, or Carnegie Mellon University for a PhD in Computer Science?</p>
-                    <p class="answer">{{ results.q8_downloaded_fields_count }}</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.q8_downloaded_fields_count }}</p>
                 </article>
 
                 <article class="card">
                     <h2>9. 2026 Acceptances Using LLM-Generated Fields</h2>
                     <p class="card-question">Do your numbers for question 8 change if you use LLM Generated Fields (rather than your downloaded fields)?</p>
-                    <p class="answer">{{ results.q9_llm_fields_count }}</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.q9_llm_fields_count }}</p>
                     <p class="answer-note">No my numbers do not change</p>
                 </article>
 
@@ -424,6 +429,53 @@
                 window.location.reload();
             }, 5000);
         {% endif %}
+
+        function showActionMessage(message, isError = false) {
+            const messageBox = document.getElementById("action-message");
+
+            if (!messageBox) {
+                return;
+            }
+
+            messageBox.textContent = message;
+            messageBox.style.display = "block";
+
+            if (isError) {
+                messageBox.classList.add("error-message");
+            } else {
+                messageBox.classList.remove("error-message");
+            }
+        }
+
+        function attachActionFormHandler(formSelector) {
+            const form = document.querySelector(formSelector);
+
+            if (!form) {
+                return;
+            }
+
+            form.addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                const response = await fetch(form.action, {
+                    method: "POST"
+                });
+
+                const data = await response.json();
+
+                showActionMessage(data.message, !data.ok);
+
+                if (data.ok) {
+                    setTimeout(function() {
+                        window.location.href = "{{ url_for('analysis') }}?tab=explore";
+                    }, 800);
+                }
+            });
+        }
+
+        attachActionFormHandler('form[action="{{ url_for("pull_data") }}"]');
+        attachActionFormHandler('form[action="{{ url_for("update_analysis") }}"]');
     </script>
+
 </body>
 </html>

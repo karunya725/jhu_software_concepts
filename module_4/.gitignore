@@ -1,8 +1,40 @@
+# Temporary / test files
 query_data_test.py
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / coverage files
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+.env.*
 
 # Temporary JSONL outputs
 *.jsonl
 
+# Local generated pipeline outputs
+module_4/src/module_2_code/new_raw_applicant_data.json
+module_4/src/module_2_code/new_applicant_data.json
+module_4/src/module_2_code/new_llm_extend_applicant_data.json
+module_4/src/module_2_code/new_llm_extend_applicant_data.jsonl
+
 # Local downloaded LLM model files
 module_3/module_2_code/llm_hosting/models/
+module_4/src/module_2_code/llm_hosting/models/
 *.gguf
+
+# OS files
+.DS_Store
+Thumbs.db

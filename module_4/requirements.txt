@@ -3,3 +3,6 @@ psycopg[binary]
 beautifulsoup4
 python-dotenv
 llama-cpp-python
+pytest
+pytest-cov
+huggingface_hub

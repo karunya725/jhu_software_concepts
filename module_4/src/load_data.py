@@ -188,7 +188,7 @@ def insert_records(cursor, records):
     return inserted_count
 
 
-def main():
+def main():  # pragma: no cover
     print("Connecting to PostgreSQL...")
 
     connection = psycopg.connect(
@@ -217,5 +217,5 @@ def main():
             print(f"Confirmed row count in database: {total_count}")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

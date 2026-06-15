@@ -1,1 +1,47 @@
-[]
+[
+  {
+    "program": "Computer Science, University of California, Davis",
+    "comments": "2 professor development happened last week of May, one said he has no funding, so discussed thesis-based master's option, the other took his sweet time to schedule a call and finally got on a call on June 10th, stating his interest to hire me as a PhD student in his lab and offering TA. He gave me a task to write a summary on one of his projects, while working on it, on the same day, i received a reject. I have filed for appeal. Please suggest what more I can do.",
+    "date_added": "Added on Jun 11, 2026",
+    "url": "https://www.thegradcafe.com/result/1020344",
+    "status": "Rejected on Jun 10",
+    "term": "Fall 2026",
+    "US/International": "International",
+    "GRE Score": null,
+    "GRE AW": null,
+    "GPA": "GPA 3.80",
+    "Degree": "PhD",
+    "gradcafe_id": 1020344,
+    "raw_text": "School: University of California, Davis | Program: Computer Science | Level: PhD | Decision: Rejected | Decision label: Rejected on Jun 10 | Added on: Jun 11, 2026 | Season: Fall 2026 | Status: International | GPA: 3.80 | GRE Quant: None | GRE Verbal: None | GRE AW: None | GRE Subject: None | Notes: 2 professor development happened last week of May, one said he has no funding, so discussed thesis-based master's option, the other took his sweet time to schedule a call and finally got on a call on June 10th, stating his interest to hire me as a PhD student in his lab and offering TA. He gave me a task to write a summary on one of his projects, while working on it, on the same day, i received a reject. I have filed for appeal. Please suggest what more I can do.",
+    "raw_record": {
+      "id": 1020344,
+      "school": "University of California, Davis",
+      "program": "Computer Science",
+      "level": "PhD",
+      "how": "E-mail",
+      "decision": "Rejected",
+      "date_of_notification": "2026-06-10T00:00:00.000000Z",
+      "created_at": "2026-06-11",
+      "notes": "2 professor development happened last week of May, one said he has no funding, so discussed thesis-based master's option, the other took his sweet time to schedule a call and finally got on a call on June 10th, stating his interest to hire me as a PhD student in his lab and offering TA. He gave me a task to write a summary on one of his projects, while working on it, on the same day, i received a reject. I have filed for appeal. Please suggest what more I can do.",
+      "status": "International",
+      "season": "Fall 2026",
+      "ugpa": "3.80",
+      "greq": null,
+      "grev": null,
+      "grew": null,
+      "gres": null,
+      "added_on_label": "Jun 11, 2026",
+      "decision_label": "Rejected on Jun 10",
+      "acceptedDate": null,
+      "rejectedDate": "2026-06-10",
+      "waitlistedDate": null,
+      "interviewDate": null,
+      "school_id": 7390,
+      "program_id": 2,
+      "degree_type_id": 1,
+      "is_owner": false
+    },
+    "llm-generated-program": "Computer Science",
+    "llm-generated-university": "University of California, Davis"
+  }
+]

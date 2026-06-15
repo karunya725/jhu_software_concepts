@@ -47,7 +47,7 @@ def fetch_all(cursor, query, params=None):
     return cursor.fetchall()
 
 
-def main():
+def main():  # pragma: no cover
     with get_connection() as connection:
         with connection.cursor() as cursor:
 
@@ -261,5 +261,5 @@ def main():
             print("Analysis complete.\n")
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     main()

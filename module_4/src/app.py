@@ -4,7 +4,7 @@ import subprocess
 import sys
 import threading
 import psycopg
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 
 PULL_DATA_RUNNING = False
 PULL_DATA_LOCK = threading.Lock()
@@ -57,37 +57,49 @@ def create_app(test_config=None):
     def pull_data():
         """
         Starts the incremental data pull pipeline.
+
+        Returns JSON so tests and the webpage can check whether the pull started.
         """
         global PULL_DATA_RUNNING
 
         with PULL_DATA_LOCK:
             if PULL_DATA_RUNNING:
-                flash("Pull Data is already running. Please wait before starting another request.")
-                return redirect(url_for("analysis", tab="explore"))
+                return jsonify({
+                    "ok": False,
+                    "busy": True,
+                    "message": "Pull Data is already running. Please wait before starting another request."
+                }), 409
 
             PULL_DATA_RUNNING = True
 
         pipeline_thread = threading.Thread(target=run_pull_data_pipeline)
         pipeline_thread.start()
 
-        flash(
-            "Pull Data has started. The app is checking Grad Café for new records. "
-            "This may take a while if new records need LLM enrichment."
-        )
-
-        return redirect(url_for("analysis", tab="explore"))
+        return jsonify({
+            "ok": True,
+            "busy": False,
+            "message": "Pull Data has started. The app is checking Grad Café for new records."
+        }), 202
 
     @app.route("/update-analysis", methods=["POST"])
     def update_analysis():
         """
         Refreshes analysis unless Pull Data is currently running.
+
+        Returns JSON so tests and the webpage can check the update status.
         """
         if PULL_DATA_RUNNING:
-            flash("Analysis cannot be updated while Pull Data is running. Please wait and try again.")
-            return redirect(url_for("analysis", tab="explore"))
+            return jsonify({
+                "ok": False,
+                "busy": True,
+                "message": "Analysis cannot be updated while Pull Data is running. Please wait and try again."
+            }), 409
 
-        flash("Analysis updated using the current PostgreSQL database.")
-        return redirect(url_for("analysis"))
+        return jsonify({
+            "ok": True,
+            "busy": False,
+            "message": "Analysis updated using the current PostgreSQL database."
+        }), 200
 
 
     return app
@@ -588,5 +600,5 @@ def run_pull_data_pipeline():
 
 app = create_app()
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if __name__ == "__main__":  # pragma: no cover
+    app.run(debug=True)  # pragma: no cover
