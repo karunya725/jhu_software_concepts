@@ -1,0 +1,175 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture &mdash; Grad Cafe Analysis App 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api_reference.html" />
+    <link rel="prev" title="Overview" href="overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Grad Cafe Analysis App
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#application-layer">Application Layer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#database-layer">Database Layer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#data-loading-layer">Data Loading Layer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#query-layer">Query Layer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#testing-architecture">Testing Architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="testing.html">Testing Guide</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Grad Cafe Analysis App</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/architecture.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h1>
+<p>The application follows a simple Flask application architecture with a PostgreSQL database backend.</p>
+<section id="application-layer">
+<h2>Application Layer<a class="headerlink" href="#application-layer" title="Link to this heading"></a></h2>
+<p>The Flask application is defined in <code class="docutils literal notranslate"><span class="pre">src/app.py</span></code>. It creates the web application, defines routes, connects to the database, builds filter clauses, and renders the analysis page.</p>
+<p>The main routes are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/</span></code> - redirects to the analysis page.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/analysis</span></code> - displays the analysis dashboard.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/pull-data</span></code> - starts the incremental data pull pipeline.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/update-analysis</span></code> - refreshes the analysis using the current database.</p></li>
+</ul>
+</section>
+<section id="database-layer">
+<h2>Database Layer<a class="headerlink" href="#database-layer" title="Link to this heading"></a></h2>
+<p>The application uses PostgreSQL to store applicant records.</p>
+<p>The required applicant table includes fields such as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">p_id</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">program</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">comments</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">date_added</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">url</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">term</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">us_or_international</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gpa</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gre</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gre_v</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gre_aw</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">degree</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">llm_generated_program</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">llm_generated_university</span></code></p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">db_utils.py</span></code> file contains helper functions used by the test suite to create, clear, insert into, and query the test database.</p>
+</section>
+<section id="data-loading-layer">
+<h2>Data Loading Layer<a class="headerlink" href="#data-loading-layer" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">load_data.py</span></code> file handles loading cleaned applicant records from JSON data into PostgreSQL. It also includes helper functions for cleaning numeric values, dates, and admission status labels.</p>
+</section>
+<section id="query-layer">
+<h2>Query Layer<a class="headerlink" href="#query-layer" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">query_data.py</span></code> file contains database connection and query helper functions. These helpers make it easier to separate SQL access from application and testing logic.</p>
+</section>
+<section id="testing-architecture">
+<h2>Testing Architecture<a class="headerlink" href="#testing-architecture" title="Link to this heading"></a></h2>
+<p>The test suite is organized as stated below:</p>
+<ul class="simple">
+<li><p>Web page tests</p></li>
+<li><p>Button behavior tests</p></li>
+<li><p>Analysis formatting tests</p></li>
+<li><p>Database schema and insert tests</p></li>
+<li><p>Duplicate/idempotency tests</p></li>
+<li><p>Integration tests</p></li>
+</ul>
+<p>The tests use Pytest fixtures, monkeypatching, and fake data so that the test suite does not depend on live Grad Café scraping or LLM processing.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="overview.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api_reference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Karunya Narayanamurthy.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
