@@ -1,17 +1,17 @@
+"""Load cleaned Grad Cafe applicant data into PostgreSQL."""
+
 import json
 import re
 from datetime import datetime
 from pathlib import Path
-
 import psycopg
-
 
 # -----------------------------
 # Database connection settings
 # -----------------------------
 DB_NAME = "gradcafe_db"
 DB_USER = "postgres"
-DB_PASSWORD = "jscm3@56psg" 
+DB_PASSWORD = "jscm3@56psg"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 
@@ -189,6 +189,7 @@ def insert_records(cursor, records):
 
 
 def main():  # pragma: no cover
+    """Load applicant records into the PostgreSQL database."""
     print("Connecting to PostgreSQL...")
 
     connection = psycopg.connect(
@@ -200,7 +201,7 @@ def main():  # pragma: no cover
     )
 
     with connection:
-        with connection.cursor() as cursor:
+        with connection.cursor() as cursor: # pylint: disable=no-member
             print("Creating applicants table...")
             create_table(cursor)
 

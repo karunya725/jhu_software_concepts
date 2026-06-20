@@ -2,9 +2,6 @@
 Database utility functions for testing and inserting Grad Café applicant records.
 """
 
-import psycopg
-
-
 REQUIRED_COLUMNS = [
     "p_id",
     "program",

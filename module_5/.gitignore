@@ -1,3 +1,8 @@
+# Python packaging/build artifacts
+*.egg-info/
+build/
+dist/
+
 # Temporary / test files
 query_data_test.py
 

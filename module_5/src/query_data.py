@@ -1,5 +1,6 @@
-import psycopg
+"""Query helper functions for Grad Cafe applicant analysis."""
 
+import psycopg
 
 # -----------------------------
 # Database connection settings
@@ -28,6 +29,7 @@ NORMALIZED_GPA_SQL = """
 
 
 def get_connection():
+    """Create and return a PostgreSQL database connection."""
     return psycopg.connect(
         dbname=DB_NAME,
         user=DB_USER,
@@ -38,16 +40,19 @@ def get_connection():
 
 
 def fetch_one(cursor, query, params=None):
+    """Execute a query and return the first value from the first row."""
     cursor.execute(query, params or ())
     return cursor.fetchone()[0]
 
 
 def fetch_all(cursor, query, params=None):
+    """Execute a query and return all rows."""
     cursor.execute(query, params or ())
     return cursor.fetchall()
 
 
 def main():  # pragma: no cover
+    """Query applicant records into the PostgreSQL database."""
     with get_connection() as connection:
         with connection.cursor() as cursor:
 
@@ -63,7 +68,8 @@ def main():  # pragma: no cover
             print(f"\n1. Fall 2026 applicant count: {q1}")
 
             # Q2: Percentage of international students
-            # Some nationality values are invalid, such as '0', so this query also checks comments for nationality clues. 
+            # Some nationality values are invalid, such as '0'
+            # so this query also checks comments for nationality clues.
             # Comments containing "Canadian" or "International" are treated as international
             # while comments containing "US Citizen" or "American" are treated as American
             q2 = fetch_one(cursor, """
@@ -95,7 +101,8 @@ def main():  # pragma: no cover
 
             # Q3: Average GPA, GRE, GRE V, GRE AW of applicants
             # GRE scores range from 130 to 170 in the separate Verbal and Quant sections
-            # GRE AW uses 0.1–6.0 here because 0 is treated as likely missing or unusable in this scraped dataset
+            # GRE AW uses 0.1–6.0 here because 0 is treated as
+            # likely missing or unusable in this scraped dataset
             q3 = fetch_all(cursor, f"""
                 SELECT
                     AVG({NORMALIZED_GPA_SQL}) AS average_gpa,
@@ -206,7 +213,10 @@ def main():  # pragma: no cover
             )
 
             # Q10 - (Possible) Additional question 1
-            print("\n10. Which universities appear most competitive in Fall 2026 based on low acceptance rate?")
+            print(
+                "\n10. Which universities appear most competitive in Fall 2026 "
+                "based on low acceptance rate?"
+            )
             q10 = fetch_all(cursor, """
                 SELECT
                     llm_generated_university,

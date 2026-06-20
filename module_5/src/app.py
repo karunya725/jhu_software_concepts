@@ -1,36 +1,40 @@
+"""Flask application for displaying Grad Cafe analysis results."""
+
 import os
 from pathlib import Path
 import subprocess
 import sys
 import threading
 import psycopg
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 
 PULL_DATA_RUNNING = False
 PULL_DATA_LOCK = threading.Lock()
 
 def create_app(test_config=None):
-    app = Flask(
+    """Create and configure the Flask application."""
+
+    flask_app = Flask(
         __name__,
         template_folder="templates",
         static_folder="static"
     )
 
-    app.config.from_mapping(
+    flask_app.config.from_mapping(
         SECRET_KEY="dev",
         TESTING=False,
     )
 
     if test_config is not None:
-        app.config.update(test_config)
+        flask_app.config.update(test_config)
 
     # routes will go here
-    @app.route("/")
+    @flask_app.route("/")
     def home():
         return redirect(url_for("analysis"))
 
 
-    @app.route("/analysis")
+    @flask_app.route("/analysis")
     def analysis():
         filters = {
             "term": request.args.get("term", ""),
@@ -53,21 +57,23 @@ def create_app(test_config=None):
             pull_data_running=PULL_DATA_RUNNING
         )
 
-    @app.route("/pull-data", methods=["POST"])
+    @flask_app.route("/pull-data", methods=["POST"])
     def pull_data():
         """
         Starts the incremental data pull pipeline.
 
         Returns JSON so tests and the webpage can check whether the pull started.
         """
-        global PULL_DATA_RUNNING
+        global PULL_DATA_RUNNING    # pylint: disable=global-statement
 
         with PULL_DATA_LOCK:
             if PULL_DATA_RUNNING:
                 return jsonify({
                     "ok": False,
                     "busy": True,
-                    "message": "Pull Data is already running. Please wait before starting another request."
+                    "message":
+                        "Pull Data is already running. "
+                        "Please wait before starting another request."
                 }), 409
 
             PULL_DATA_RUNNING = True
@@ -81,7 +87,7 @@ def create_app(test_config=None):
             "message": "Pull Data has started. The app is checking Grad Café for new records."
         }), 202
 
-    @app.route("/update-analysis", methods=["POST"])
+    @flask_app.route("/update-analysis", methods=["POST"])
     def update_analysis():
         """
         Refreshes analysis unless Pull Data is currently running.
@@ -92,7 +98,9 @@ def create_app(test_config=None):
             return jsonify({
                 "ok": False,
                 "busy": True,
-                "message": "Analysis cannot be updated while Pull Data is running. Please wait and try again."
+                "message":
+                    "Analysis cannot be updated while Pull Data is running. "
+                    "Please wait and try again."
             }), 409
 
         return jsonify({
@@ -102,7 +110,7 @@ def create_app(test_config=None):
         }), 200
 
 
-    return app
+    return flask_app
 
 # ------------------------------
 # Database connection settings
@@ -150,18 +158,18 @@ NORMALIZED_GPA_SQL = """
 
 
 def fetch_one(cursor, query, params=None):
+    """Execute a query and return the first value from the first row."""
     cursor.execute(query, params or ())
     return cursor.fetchone()[0]
 
 
 def fetch_all(cursor, query, params=None):
+    """Execute a query and return all result rows."""
     cursor.execute(query, params or ())
     return cursor.fetchall()
 
 def get_filter_options():
-    """
-    Gets dropdown filter options from the database.
-    """
+    """Gets dropdown filter options from the database."""
     options = {}
 
     with get_connection() as connection:
@@ -269,7 +277,7 @@ def get_dashboard_results(filters):
             # General filtered acceptance rate
             cursor.execute(f"""
                 SELECT ROUND(
-                    100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) 
+                    100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END)
                     / NULLIF(COUNT(*), 0),
                     2
                 )
@@ -302,7 +310,7 @@ def get_dashboard_results(filters):
                     COUNT(*) AS total_entries,
                     SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
                     ROUND(
-                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) 
+                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END)
                         / NULLIF(COUNT(*), 0),
                         2
                     ) AS acceptance_rate
@@ -324,10 +332,10 @@ def get_dashboard_results(filters):
             cursor.execute(f"""
                 SELECT ROUND(
                     100.0 * SUM(
-                        CASE 
+                        CASE
                             WHEN us_or_international NOT IN ('American', 'Other', '0')
                             AND us_or_international IS NOT NULL
-                            THEN 1 ELSE 0 
+                            THEN 1 ELSE 0
                         END
                     ) / NULLIF(COUNT(*), 0),
                     2
@@ -400,6 +408,7 @@ def get_dashboard_results(filters):
 
 
 def get_analysis_results():
+    """Return dashboard data for the analysis page."""
     results = {}
 
     with get_connection() as connection:
@@ -422,7 +431,7 @@ def get_analysis_results():
                                 OR COALESCE(comments, '') ILIKE '%%International%%'
                             THEN 1 ELSE 0
                         END
-                    ) 
+                    )
                     /
                     SUM(
                         CASE
@@ -578,7 +587,7 @@ def run_pull_data_pipeline():
     """
     Runs the incremental Pull Data pipeline in the background.
     """
-    global PULL_DATA_RUNNING
+    global PULL_DATA_RUNNING    # pylint: disable=global-statement
 
     try:
         print("Starting Pull Data pipeline from Flask...")
