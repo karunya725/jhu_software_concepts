@@ -1,15 +1,21 @@
 """Query helper functions for Grad Cafe applicant analysis."""
 
+import os
+
 import psycopg
+from psycopg import sql
 
 # -----------------------------
 # Database connection settings
 # -----------------------------
-DB_NAME = "gradcafe_db"
-DB_USER = "postgres"
-DB_PASSWORD = "jscm3@56psg"
-DB_HOST = "localhost"
-DB_PORT = "5432"
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+DB_NAME = os.environ.get("DB_NAME", "gradcafe_db")
+DB_USER = os.environ.get("DB_USER", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
 
 
 # Normalizes GPA values onto a 4.0 scale before averaging.
@@ -27,9 +33,25 @@ NORMALIZED_GPA_SQL = """
     END
 """
 
+MAX_QUERY_LIMIT = 100
+DEFAULT_QUERY_LIMIT = 50
+
+
+def clamp_limit(value=None, default=DEFAULT_QUERY_LIMIT):
+    """Clamp SQL LIMIT values to a safe range."""
+    try:
+        limit = int(value)
+    except (TypeError, ValueError):
+        return default
+
+    return max(1, min(limit, MAX_QUERY_LIMIT))
+
 
 def get_connection():
     """Create and return a PostgreSQL database connection."""
+    if DATABASE_URL:
+        return psycopg.connect(DATABASE_URL)
+
     return psycopg.connect(
         dbname=DB_NAME,
         user=DB_USER,
@@ -51,28 +73,28 @@ def fetch_all(cursor, query, params=None):
     return cursor.fetchall()
 
 
-def main():  # pragma: no cover
-    """Query applicant records into the PostgreSQL database."""
+def main():  # pragma: no cover  # pylint: disable=too-many-locals
+    """Query applicant records from the PostgreSQL database."""
     with get_connection() as connection:
         with connection.cursor() as cursor:
 
             print("\nGrad Cafe Data Analysis")
             print("=" * 50)
 
-            # Q1: Fall applicant count
-            q1 = fetch_one(cursor, """
+            q1 = fetch_one(
+                cursor,
+                """
                 SELECT COUNT(*)
                 FROM applicants
-                WHERE term = 'Fall 2026';
-            """)
+                WHERE term = 'Fall 2026'
+                LIMIT 1;
+                """
+            )
             print(f"\n1. Fall 2026 applicant count: {q1}")
 
-            # Q2: Percentage of international students
-            # Some nationality values are invalid, such as '0'
-            # so this query also checks comments for nationality clues.
-            # Comments containing "Canadian" or "International" are treated as international
-            # while comments containing "US Citizen" or "American" are treated as American
-            q2 = fetch_one(cursor, """
+            q2 = fetch_one(
+                cursor,
+                """
                 SELECT ROUND(
                     100.0 * SUM(
                         CASE
@@ -81,11 +103,15 @@ def main():  # pragma: no cover
                                 OR COALESCE(comments, '') ILIKE '%%International%%'
                             THEN 1 ELSE 0
                         END
-                    ) 
+                    )
                     /
                     SUM(
                         CASE
-                            WHEN us_or_international IN ('American', 'International', 'Other')
+                            WHEN us_or_international IN (
+                                'American',
+                                'International',
+                                'Other'
+                            )
                                 OR COALESCE(comments, '') ILIKE '%%Canadian%%'
                                 OR COALESCE(comments, '') ILIKE '%%International%%'
                                 OR COALESCE(comments, '') ILIKE '%%US Citizen%%'
@@ -95,22 +121,31 @@ def main():  # pragma: no cover
                     ),
                     2
                 )
-                FROM applicants;
-            """)
+                FROM applicants
+                LIMIT 1;
+                """
+            )
             print(f"2. Percent international: {q2}%")
 
-            # Q3: Average GPA, GRE, GRE V, GRE AW of applicants
-            # GRE scores range from 130 to 170 in the separate Verbal and Quant sections
-            # GRE AW uses 0.1–6.0 here because 0 is treated as
-            # likely missing or unusable in this scraped dataset
-            q3 = fetch_all(cursor, f"""
+            q3_query = sql.SQL(
+                """
                 SELECT
-                    AVG({NORMALIZED_GPA_SQL}) AS average_gpa,
-                    AVG(CASE WHEN gre BETWEEN 130 AND 170 THEN gre END) AS average_gre_quant,
-                    AVG(CASE WHEN gre_v BETWEEN 130 AND 170 THEN gre_v END) AS average_gre_verbal,
-                    AVG(CASE WHEN gre_aw BETWEEN 0.1 AND 6.0 THEN gre_aw END) AS average_gre_aw
-                FROM applicants;
-            """)[0]
+                    AVG({}) AS average_gpa,
+                    AVG(
+                        CASE WHEN gre BETWEEN 130 AND 170 THEN gre END
+                    ) AS average_gre_quant,
+                    AVG(
+                        CASE WHEN gre_v BETWEEN 130 AND 170 THEN gre_v END
+                    ) AS average_gre_verbal,
+                    AVG(
+                        CASE WHEN gre_aw BETWEEN 0.1 AND 6.0 THEN gre_aw END
+                    ) AS average_gre_aw
+                FROM applicants
+                LIMIT 1;
+                """
+            ).format(sql.SQL(NORMALIZED_GPA_SQL))
+
+            q3 = fetch_all(cursor, q3_query)[0]
 
             print(
                 "3. Average metrics: "
@@ -120,22 +155,30 @@ def main():  # pragma: no cover
                 f"GRE AW = {round(q3[3], 2) if q3[3] is not None else None}"
             )
 
-            # Q4: Average GPA of American students in Fall 2026
-            q4 = fetch_one(cursor, f"""
-                SELECT ROUND(AVG({NORMALIZED_GPA_SQL})::numeric, 2)
+            q4_query = sql.SQL(
+                """
+                SELECT ROUND(AVG({})::numeric, 2)
                 FROM applicants
                 WHERE term = 'Fall 2026'
                 AND (
                     us_or_international = 'American'
                     OR comments ILIKE '%%US Citizen%%'
                 )
-                AND {NORMALIZED_GPA_SQL} IS NOT NULL;
-            """)
+                AND {} IS NOT NULL
+                LIMIT 1;
+                """
+            ).format(
+                sql.SQL(NORMALIZED_GPA_SQL),
+                sql.SQL(NORMALIZED_GPA_SQL)
+            )
+
+            q4 = fetch_one(cursor, q4_query)
 
             print(f"4. Average normalized GPA of American students in Fall 2026: {q4}")
 
-            # Q5: Percentage of Fall 2026 acceptance
-            q5 = fetch_one(cursor, """
+            q5 = fetch_one(
+                cursor,
+                """
                 SELECT ROUND(
                     100.0 * SUM(
                         CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END
@@ -143,33 +186,46 @@ def main():  # pragma: no cover
                     2
                 )
                 FROM applicants
-                WHERE term = 'Fall 2026';
-            """)
+                WHERE term = 'Fall 2026'
+                LIMIT 1;
+                """
+            )
             print(f"5. Fall 2026 acceptance percent: {q5}%")
 
-            # Q6: Average GPA of applicants who applied for Fall 2026 who are Acceptances
-            q6 = fetch_one(cursor, f"""
-                SELECT ROUND(AVG({NORMALIZED_GPA_SQL})::numeric, 2)
+            q6_query = sql.SQL(
+                """
+                SELECT ROUND(AVG({})::numeric, 2)
                 FROM applicants
                 WHERE term = 'Fall 2026'
                 AND status = 'Accepted'
-                AND {NORMALIZED_GPA_SQL} IS NOT NULL;
-            """)
+                AND {} IS NOT NULL
+                LIMIT 1;
+                """
+            ).format(
+                sql.SQL(NORMALIZED_GPA_SQL),
+                sql.SQL(NORMALIZED_GPA_SQL)
+            )
+
+            q6 = fetch_one(cursor, q6_query)
 
             print(f"6. Average normalized GPA of accepted Fall 2026 applicants: {q6}")
 
-            # Q7: JHU Master's Computer Science count
-            q7 = fetch_one(cursor, """
+            q7 = fetch_one(
+                cursor,
+                """
                 SELECT COUNT(*) AS jhu_masters_cs_count
                 FROM applicants
                 WHERE degree ILIKE '%%Master%%'
                 AND llm_generated_program ILIKE '%%Computer Science%%'
-                AND llm_generated_university ILIKE '%%Johns Hopkins%%';
-            """)
+                AND llm_generated_university ILIKE '%%Johns Hopkins%%'
+                LIMIT 1;
+                """
+            )
             print(f"7. JHU Master's Computer Science count: {q7}")
 
-            # Q8
-            q8 = fetch_one(cursor, """
+            q8 = fetch_one(
+                cursor,
+                """
                 SELECT COUNT(*)
                 FROM applicants
                 WHERE term ILIKE '%%2026%%'
@@ -183,15 +239,18 @@ def main():  # pragma: no cover
                     OR program ILIKE '%%Stanford%%'
                     OR program ILIKE '%%Carnegie Mellon%%'
                     OR program ILIKE '%%CMU%%'
-                );
-            """)
+                )
+                LIMIT 1;
+                """
+            )
             print(
                 "8. 2026 acceptances to Georgetown/MIT/Stanford/CMU "
                 f"for PhD Computer Science using downloaded fields: {q8}"
             )
 
-            # Q9
-            q9 = fetch_one(cursor, """
+            q9 = fetch_one(
+                cursor,
+                """
                 SELECT COUNT(*)
                 FROM applicants
                 WHERE term ILIKE '%%2026%%'
@@ -200,30 +259,38 @@ def main():  # pragma: no cover
                 AND llm_generated_program ILIKE '%%Computer Science%%'
                 AND (
                     llm_generated_university ILIKE '%%Georgetown%%'
-                    OR llm_generated_university ILIKE '%%Massachusetts Institute of Technology%%'
+                    OR llm_generated_university ILIKE
+                       '%%Massachusetts Institute of Technology%%'
                     OR llm_generated_university ILIKE '%%MIT%%'
                     OR llm_generated_university ILIKE '%%Stanford%%'
                     OR llm_generated_university ILIKE '%%Carnegie Mellon%%'
                     OR llm_generated_university ILIKE '%%CMU%%'
-                );
-            """)
+                )
+                LIMIT 1;
+                """
+            )
             print(
                 "9. 2026 acceptances to Georgetown/MIT/Stanford/CMU "
                 f"for PhD Computer Science using LLM-generated fields: {q9}"
             )
 
-            # Q10 - (Possible) Additional question 1
             print(
                 "\n10. Which universities appear most competitive in Fall 2026 "
                 "based on low acceptance rate?"
             )
-            q10 = fetch_all(cursor, """
+            q10 = fetch_all(
+                cursor,
+                """
                 SELECT
                     llm_generated_university,
                     COUNT(*) AS total_entries,
-                    SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
+                    SUM(
+                        CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END
+                    ) AS accepted_entries,
                     ROUND(
-                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) / COUNT(*),
+                        100.0 * SUM(
+                            CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END
+                        ) / COUNT(*),
                         2
                     ) AS acceptance_rate
                 FROM applicants
@@ -232,8 +299,10 @@ def main():  # pragma: no cover
                 GROUP BY llm_generated_university
                 HAVING COUNT(*) >= 10
                 ORDER BY acceptance_rate ASC, total_entries DESC
-                LIMIT 10;
-            """)
+                LIMIT %s;
+                """,
+                (clamp_limit(10),)
+            )
 
             for row in q10:
                 print(
@@ -241,16 +310,20 @@ def main():  # pragma: no cover
                     f"({row[3]}% acceptance rate)"
                 )
 
-
-            # Q11 - Additional question 2
             print("\n11. Which degree type had the highest Fall 2026 acceptance rate?")
-            q11 = fetch_all(cursor, """
+            q11 = fetch_all(
+                cursor,
+                """
                 SELECT
                     degree,
                     COUNT(*) AS total_entries,
-                    SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) AS accepted_entries,
+                    SUM(
+                        CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END
+                    ) AS accepted_entries,
                     ROUND(
-                        100.0 * SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) / COUNT(*),
+                        100.0 * SUM(
+                            CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END
+                        ) / COUNT(*),
                         2
                     ) AS acceptance_rate
                 FROM applicants
@@ -258,8 +331,11 @@ def main():  # pragma: no cover
                 AND degree IS NOT NULL
                 GROUP BY degree
                 HAVING COUNT(*) >= 10
-                ORDER BY acceptance_rate DESC;
-            """)
+                ORDER BY acceptance_rate DESC
+                LIMIT %s;
+                """,
+                (clamp_limit(100),)
+            )
 
             for row in q11:
                 print(

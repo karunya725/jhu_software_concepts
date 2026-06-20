@@ -36,6 +36,7 @@ module_5/src/module_2_code/new_raw_applicant_data.json
 module_5/src/module_2_code/new_applicant_data.json
 module_5/src/module_2_code/new_llm_extend_applicant_data.json
 module_5/src/module_2_code/new_llm_extend_applicant_data.jsonl
+module_5/src/data/llm_extend_applicant_data.json
 
 # Local downloaded LLM model files
 module_5/src/module_2_code/llm_hosting/models/

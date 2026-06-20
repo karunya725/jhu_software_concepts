@@ -1,31 +1,52 @@
 """Load cleaned Grad Cafe applicant data into PostgreSQL."""
 
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
+
 import psycopg
 
 # -----------------------------
 # Database connection settings
 # -----------------------------
-DB_NAME = "gradcafe_db"
-DB_USER = "postgres"
-DB_PASSWORD = "jscm3@56psg"
-DB_HOST = "localhost"
-DB_PORT = "5432"
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+DB_NAME = os.environ.get("DB_NAME", "gradcafe_db")
+DB_USER = os.environ.get("DB_USER", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
 
 
 # -----------------------------
 # File path
 # -----------------------------
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_FILE = BASE_DIR / "data" / "llm_extend_applicant_data.json"
 
 
+def get_connection():
+    """Create and return a PostgreSQL database connection."""
+    if DATABASE_URL:
+        return psycopg.connect(DATABASE_URL)
+
+    return psycopg.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
+    )
+
+
 def clean_float(value):
     """
-    Converts messy numeric strings into floats.
+    Convert messy numeric strings into floats.
+
     Examples:
         "GPA 3.90" -> 3.90
         "165" -> 165.0
@@ -48,7 +69,8 @@ def clean_float(value):
 
 def clean_date(value):
     """
-    Converts date strings into YYYY-MM-DD format.
+    Convert date strings into YYYY-MM-DD format.
+
     Example:
         "Added on May 29, 2026" -> "2026-05-29"
     """
@@ -66,7 +88,8 @@ def clean_date(value):
 
 def clean_status(value):
     """
-    Converts status strings into a simple admission decision.
+    Convert status strings into a simple admission decision.
+
     Examples:
         "Accepted on May 29" -> "Accepted"
         "Rejected on May 29" -> "Rejected"
@@ -91,7 +114,10 @@ def clean_status(value):
 
 def create_table(cursor):
     """
-    Drops and recreates the applicants table.
+    Drop and recreate the applicants table.
+
+    This loader function is intended for local/admin data-loading setup.
+    The least-privilege application user should not be granted DROP or CREATE.
     """
     cursor.execute("""
         DROP TABLE IF EXISTS applicants;
@@ -119,17 +145,13 @@ def create_table(cursor):
 
 
 def load_json_data():
-    """
-    Loads the JSON applicant records from the data folder.
-    """
+    """Load JSON applicant records from the data folder."""
     with open(DATA_FILE, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
 def insert_records(cursor, records):
-    """
-    Inserts applicant records into PostgreSQL.
-    """
+    """Insert applicant records into PostgreSQL using parameterized values."""
     insert_sql = """
         INSERT INTO applicants (
             p_id,
@@ -158,7 +180,6 @@ def insert_records(cursor, records):
 
     for record in records:
         raw_record = record.get("raw_record", {})
-
         p_id = record.get("gradcafe_id") or raw_record.get("id")
 
         if p_id is None:
@@ -183,7 +204,7 @@ def insert_records(cursor, records):
         )
 
         cursor.execute(insert_sql, row)
-        inserted_count += 1
+        inserted_count += cursor.rowcount
 
     return inserted_count
 
@@ -192,16 +213,8 @@ def main():  # pragma: no cover
     """Load applicant records into the PostgreSQL database."""
     print("Connecting to PostgreSQL...")
 
-    connection = psycopg.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
-
-    with connection:
-        with connection.cursor() as cursor: # pylint: disable=no-member
+    with get_connection() as connection:
+        with connection.cursor() as cursor:  # pylint: disable=no-member
             print("Creating applicants table...")
             create_table(cursor)
 
@@ -213,7 +226,11 @@ def main():  # pragma: no cover
 
             print(f"Done. Inserted {inserted_count} records into applicants table.")
 
-            cursor.execute("SELECT COUNT(*) FROM applicants;")
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM applicants
+                LIMIT 1;
+            """)
             total_count = cursor.fetchone()[0]
             print(f"Confirmed row count in database: {total_count}")
 

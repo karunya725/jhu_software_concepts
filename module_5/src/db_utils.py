@@ -134,7 +134,11 @@ def count_applicants(connection):
     :return: Number of applicant rows.
     """
     with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM applicants;")
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM applicants
+            LIMIT 1;
+        """)
         return cursor.fetchone()[0]
 
 
@@ -165,7 +169,11 @@ def get_analysis_summary(connection):
     :return: Dictionary with expected analysis keys.
     """
     with connection.cursor() as cursor:
-        cursor.execute("SELECT COUNT(*) FROM applicants;")
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM applicants
+            LIMIT 1;
+        """)
         total_applicants = cursor.fetchone()[0]
 
         cursor.execute(

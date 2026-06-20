@@ -19,18 +19,20 @@ from pathlib import Path
 from datetime import datetime
 import json
 import re
-
+import os
 import psycopg
 
 
 # -----------------------------
 # Database connection settings
 # -----------------------------
-DB_NAME = "gradcafe_db"
-DB_USER = "postgres"
-DB_PASSWORD = "jscm3@56psg" 
-DB_HOST = "localhost"
-DB_PORT = "5432"
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+DB_NAME = os.environ.get("DB_NAME", "gradcafe_db")
+DB_USER = os.environ.get("DB_USER", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
 
 
 # -----------------------------
@@ -123,6 +125,10 @@ def load_new_records():
 
 
 def get_connection():
+    """Create and return a PostgreSQL database connection."""
+    if DATABASE_URL:
+        return psycopg.connect(DATABASE_URL)
+
     return psycopg.connect(
         dbname=DB_NAME,
         user=DB_USER,

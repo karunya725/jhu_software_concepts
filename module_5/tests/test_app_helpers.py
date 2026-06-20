@@ -57,10 +57,15 @@ def test_build_filter_where_clause_with_all_filters():
 
     where_sql, params = app_module.build_filter_where_clause(filters)
 
-    assert where_sql == (
-        "WHERE term = %s AND degree = %s AND status = %s "
-        "AND us_or_international = %s AND llm_generated_university = %s"
-    )
+    where_sql_text = str(where_sql)
+
+    assert "WHERE" in where_sql_text
+    assert "term" in where_sql_text
+    assert "degree" in where_sql_text
+    assert "status" in where_sql_text
+    assert "us_or_international" in where_sql_text
+    assert "llm_generated_university" in where_sql_text
+
     assert params == [
         "Fall 2026",
         "Masters",
@@ -74,7 +79,7 @@ def test_build_filter_where_clause_with_all_filters():
 def test_build_filter_where_clause_with_no_filters():
     where_sql, params = app_module.build_filter_where_clause({})
 
-    assert where_sql == ""
+    assert str(where_sql) == "SQL('')"
     assert params == []
 
 
@@ -112,3 +117,31 @@ def test_run_pull_data_pipeline_handles_subprocess_error(monkeypatch):
     app_module.run_pull_data_pipeline()
 
     assert app_module.PULL_DATA_RUNNING is False
+
+@pytest.mark.analysis
+def test_clamp_limit_returns_default_for_invalid_value():
+    assert app_module.clamp_limit("not-a-number") == app_module.DEFAULT_QUERY_LIMIT
+
+
+@pytest.mark.analysis
+def test_clamp_limit_clamps_large_value_to_maximum():
+    assert app_module.clamp_limit(1000) == app_module.MAX_QUERY_LIMIT
+
+
+@pytest.mark.analysis
+def test_clamp_limit_clamps_small_value_to_minimum():
+    assert app_module.clamp_limit(0) == 1
+
+
+@pytest.mark.analysis
+def test_get_condition_joiner_without_filters():
+    joiner = app_module.get_condition_joiner(False)
+
+    assert str(joiner) == "SQL('WHERE')"
+
+
+@pytest.mark.analysis
+def test_get_condition_joiner_with_filters():
+    joiner = app_module.get_condition_joiner(True)
+
+    assert str(joiner) == "SQL('AND')"

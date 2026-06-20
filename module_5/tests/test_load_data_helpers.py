@@ -13,10 +13,12 @@ class FakeCursor:
     def __init__(self):
         self.executed_queries = []
         self.executed_params = []
+        self.rowcount = 0
 
     def execute(self, query, params=None):
         self.executed_queries.append(query)
         self.executed_params.append(params)
+        self.rowcount = 1
 
 
 def make_fake_load_record(record_id=900001):
@@ -171,3 +173,47 @@ def test_clean_status_handles_none():
 )
 def test_clean_status_maps_remaining_statuses(raw_status, expected_status):
     assert load_data.clean_status(raw_status) == expected_status
+
+@pytest.mark.db
+def test_load_data_get_connection_uses_database_settings(monkeypatch):
+    captured_settings = {}
+
+    def fake_connect(**kwargs):
+        captured_settings.update(kwargs)
+        return "fake connection"
+
+    monkeypatch.setattr(load_data, "DATABASE_URL", None)
+    monkeypatch.setattr(load_data.psycopg, "connect", fake_connect)
+
+    connection = load_data.get_connection()
+
+    assert connection == "fake connection"
+    assert captured_settings["dbname"] == load_data.DB_NAME
+    assert captured_settings["user"] == load_data.DB_USER
+    assert captured_settings["password"] == load_data.DB_PASSWORD
+    assert captured_settings["host"] == load_data.DB_HOST
+    assert captured_settings["port"] == load_data.DB_PORT
+
+
+@pytest.mark.db
+def test_load_data_get_connection_uses_database_url(monkeypatch):
+    captured_args = {}
+
+    def fake_connect(database_url):
+        captured_args["database_url"] = database_url
+        return "fake url connection"
+
+    monkeypatch.setattr(
+        load_data,
+        "DATABASE_URL",
+        "postgresql://postgres:test@localhost:5432/gradcafe_test_db"
+    )
+    monkeypatch.setattr(load_data.psycopg, "connect", fake_connect)
+
+    connection = load_data.get_connection()
+
+    assert connection == "fake url connection"
+    assert (
+        captured_args["database_url"]
+        == "postgresql://postgres:test@localhost:5432/gradcafe_test_db"
+    )
