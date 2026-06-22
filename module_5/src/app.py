@@ -9,6 +9,9 @@ import threading
 import psycopg
 from psycopg import sql
 from flask import Flask, jsonify, redirect, render_template, request, url_for
+from dotenv import load_dotenv
+
+load_dotenv()
 
 PULL_DATA_RUNNING = False
 PULL_DATA_LOCK = threading.Lock()

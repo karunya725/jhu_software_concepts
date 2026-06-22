@@ -5,6 +5,7 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
 
 import psycopg
 
@@ -12,6 +13,7 @@ import psycopg
 # Database connection settings
 # -----------------------------
 
+load_dotenv()
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 DB_NAME = os.environ.get("DB_NAME", "gradcafe_db")
