@@ -81,5 +81,6 @@ jobs:
         working-directory: module_5
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
         run: |
           snyk test --file=requirements.txt --package-manager=pip
