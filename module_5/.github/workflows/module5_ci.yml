@@ -61,12 +61,13 @@ jobs:
       - name: Run Pylint
         working-directory: module_5
         run: |
-          python -m pylint --rcfile=.pylintrc src
+          python -m pylint --rcfile=.pylintrc --fail-under=10 src
 
       - name: Generate dependency graph
         working-directory: module_5
         run: |
           pydeps src --noshow -o dependency.svg
+          test -s dependency.svg
 
       - name: Run pytest with coverage
         working-directory: module_5
