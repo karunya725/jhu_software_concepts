@@ -20,12 +20,23 @@ The app was tested with a least-privilege PostgreSQL user named `gradcafe_app_us
 
 These commands should be run from inside the `module_5` folder.
 
+### Option 1: pip + venv
+
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 py -m pip install --upgrade pip
 py -m pip install -r requirements.txt
 py -m pip install -e .
+```
+
+### Option 2: uv
+
+```powershell
+uv venv
+.\.venv\Scripts\Activate.ps1
+uv pip sync requirements.txt
+uv pip install -e .
 ```
 
 For tests, I used the test database:
