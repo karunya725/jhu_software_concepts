@@ -750,4 +750,5 @@ def run_pull_data_pipeline():
 app = create_app()
 
 if __name__ == "__main__":  # pragma: no cover
-    app.run(debug=True)  # pragma: no cover
+    debug_mode = os.environ.get("FLASK_DEBUG", "true").lower() == "true"
+    app.run(debug=debug_mode)  # pragma: no cover
