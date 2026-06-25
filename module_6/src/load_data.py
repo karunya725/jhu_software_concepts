@@ -1,0 +1,241 @@
+"""Load cleaned Grad Cafe applicant data into PostgreSQL."""
+
+import json
+import os
+import re
+from datetime import datetime
+from pathlib import Path
+from dotenv import load_dotenv
+
+import psycopg
+
+# -----------------------------
+# Database connection settings
+# -----------------------------
+
+load_dotenv()
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+DB_NAME = os.environ.get("DB_NAME", "gradcafe_db")
+DB_USER = os.environ.get("DB_USER", "postgres")
+DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
+DB_HOST = os.environ.get("DB_HOST", "localhost")
+DB_PORT = os.environ.get("DB_PORT", "5432")
+
+
+# -----------------------------
+# File path
+# -----------------------------
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_FILE = BASE_DIR / "data" / "llm_extend_applicant_data.json"
+
+
+def get_connection():
+    """Create and return a PostgreSQL database connection."""
+    if DATABASE_URL:
+        return psycopg.connect(DATABASE_URL)
+
+    return psycopg.connect(
+        dbname=DB_NAME,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        host=DB_HOST,
+        port=DB_PORT
+    )
+
+
+def clean_float(value):
+    """
+    Convert messy numeric strings into floats.
+
+    Examples:
+        "GPA 3.90" -> 3.90
+        "165" -> 165.0
+        None -> None
+    """
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if value == "":
+        return None
+
+    match = re.search(r"\d+(\.\d+)?", value)
+    if match:
+        return float(match.group())
+
+    return None
+
+
+def clean_date(value):
+    """
+    Convert date strings into YYYY-MM-DD format.
+
+    Example:
+        "Added on May 29, 2026" -> "2026-05-29"
+    """
+    if value is None:
+        return None
+
+    value = str(value).replace("Added on", "").strip()
+
+    try:
+        parsed_date = datetime.strptime(value, "%B %d, %Y")
+        return parsed_date.date()
+    except ValueError:
+        return None
+
+
+def clean_status(value):
+    """
+    Convert status strings into a simple admission decision.
+
+    Examples:
+        "Accepted on May 29" -> "Accepted"
+        "Rejected on May 29" -> "Rejected"
+        "Wait listed" -> "Wait listed"
+    """
+    if value is None:
+        return None
+
+    value = str(value).strip()
+
+    if "Accepted" in value:
+        return "Accepted"
+    if "Rejected" in value:
+        return "Rejected"
+    if "Wait" in value:
+        return "Wait listed"
+    if "Interview" in value:
+        return "Interview"
+
+    return value
+
+
+def create_table(cursor):
+    """
+    Drop and recreate the applicants table.
+
+    This loader function is intended for local/admin data-loading setup.
+    The least-privilege application user should not be granted DROP or CREATE.
+    """
+    cursor.execute("""
+        DROP TABLE IF EXISTS applicants;
+    """)
+
+    cursor.execute("""
+        CREATE TABLE applicants (
+            p_id INTEGER PRIMARY KEY,
+            program TEXT,
+            comments TEXT,
+            date_added DATE,
+            url TEXT,
+            status TEXT,
+            term TEXT,
+            us_or_international TEXT,
+            gpa FLOAT,
+            gre FLOAT,
+            gre_v FLOAT,
+            gre_aw FLOAT,
+            degree TEXT,
+            llm_generated_program TEXT,
+            llm_generated_university TEXT
+        );
+    """)
+
+
+def load_json_data():
+    """Load JSON applicant records from the data folder."""
+    with open(DATA_FILE, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def insert_records(cursor, records):
+    """Insert applicant records into PostgreSQL using parameterized values."""
+    insert_sql = """
+        INSERT INTO applicants (
+            p_id,
+            program,
+            comments,
+            date_added,
+            url,
+            status,
+            term,
+            us_or_international,
+            gpa,
+            gre,
+            gre_v,
+            gre_aw,
+            degree,
+            llm_generated_program,
+            llm_generated_university
+        )
+        VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        )
+        ON CONFLICT (p_id) DO NOTHING;
+    """
+
+    inserted_count = 0
+
+    for record in records:
+        raw_record = record.get("raw_record", {})
+        p_id = record.get("gradcafe_id") or raw_record.get("id")
+
+        if p_id is None:
+            continue
+
+        row = (
+            int(p_id),
+            record.get("program"),
+            record.get("comments"),
+            clean_date(record.get("date_added")),
+            record.get("url"),
+            clean_status(record.get("status")),
+            record.get("term"),
+            record.get("US/International"),
+            clean_float(record.get("GPA")),
+            clean_float(raw_record.get("greq")),
+            clean_float(raw_record.get("grev")),
+            clean_float(raw_record.get("grew")),
+            record.get("Degree"),
+            record.get("llm-generated-program"),
+            record.get("llm-generated-university"),
+        )
+
+        cursor.execute(insert_sql, row)
+        inserted_count += cursor.rowcount
+
+    return inserted_count
+
+
+def main():  # pragma: no cover
+    """Load applicant records into the PostgreSQL database."""
+    print("Connecting to PostgreSQL...")
+
+    with get_connection() as connection:
+        with connection.cursor() as cursor:  # pylint: disable=no-member
+            print("Creating applicants table...")
+            create_table(cursor)
+
+            print(f"Loading data from {DATA_FILE}...")
+            records = load_json_data()
+
+            print("Inserting records...")
+            inserted_count = insert_records(cursor, records)
+
+            print(f"Done. Inserted {inserted_count} records into applicants table.")
+
+            cursor.execute("""
+                SELECT COUNT(*)
+                FROM applicants
+                LIMIT 1;
+            """)
+            total_count = cursor.fetchone()[0]
+            print(f"Confirmed row count in database: {total_count}")
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()
