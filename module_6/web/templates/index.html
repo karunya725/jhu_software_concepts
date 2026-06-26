@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Grad Cafe Data Analysis</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <main class="page">
+        <header class="hero">
+            <p class="eyebrow">PostgreSQL + Flask Analysis</p>
+            <h1>Grad Cafe Data Analysis</h1>
+            <p class="subtitle">
+                This webpage displays dynamic SQL analysis results from the Grad Café applicant database.
+            </p>
+
+            <div class="nav-actions-row">
+                <div class="tabs">
+                    <button class="tab-button active" onclick="showTab('assignment-tab', this)">
+                        Assignment Analysis
+                    </button>
+                    <button class="tab-button" onclick="showTab('explore-tab', this)">
+                        Exploring the Dataset
+                    </button>
+                </div>
+
+                <div class="nav-divider"></div>
+
+                <div class="data-actions">
+                    <form method="post" action="{{ url_for('pull_data') }}">
+                        <button 
+                            type="submit" 
+                            class="action-button pull-button"
+                            data-testid="pull-data-btn"
+                            {% if pull_data_running %}disabled{% endif %}
+                        >
+                            {% if pull_data_running %}
+                                Pulling Data...
+                            {% else %}
+                                Pull Data
+                            {% endif %}
+                        </button>
+                    </form>
+
+                    <form method="post" action="{{ url_for('update_analysis') }}">
+                        <button 
+                            type="submit" 
+                            class="action-button update-button"
+                            data-testid="update-analysis-btn"
+                            {% if pull_data_running %}disabled{% endif %}
+                        >
+                            Update Analysis
+                        </button>
+                    </form>
+                </div>
+
+                <div id="action-message" class="flash-messages"></div>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <p>{{ message }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+
+        </header>
+
+        <!-- Assignment Analysis Tab -->
+        <section id="assignment-tab" class="tab-content active">
+            <section class="analysis-grid">
+
+                <article class="card">
+                    <h2>1. Fall 2026 Applicant Count</h2>
+                    <p class="card-question">How many entries do you have in your database who have applied for Fall 2026?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.fall_2026_count }}</p>
+                </article>
+
+                <article class="card">
+                    <h2>2. Percent International</h2>
+                    <p class="card-question">What percentage of entries are from international students (not American or Other) (to two decimal places)?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.percent_international }}%</p>
+                </article>
+
+                <article class="card">
+                    <h2>3. Average Applicant Metrics</h2>
+                    <p class="card-question">What is the average GPA, GRE, GRE V, GRE AW of applicants who provide these metrics?</p>
+                    <p class="answer-label"><strong>Answer:</strong></p>
+                    <ul>
+                        <li>Average GPA: <strong>{{ results.average_metrics.gpa }}</strong></li>
+                        <li>Average GRE Quant: <strong>{{ results.average_metrics.gre_quant }}</strong></li>
+                        <li>Average GRE Verbal: <strong>{{ results.average_metrics.gre_verbal }}</strong></li>
+                        <li>Average GRE AW: <strong>{{ results.average_metrics.gre_aw }}</strong></li>
+                    </ul>
+                </article>
+
+                <article class="card">
+                    <h2>4. Average GPA of American Students in Fall 2026</h2>
+                    <p class="card-question">What is their average GPA of American students in Fall 2026?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.american_fall_2026_avg_gpa }}</p>
+                </article>
+
+                <article class="card">
+                    <h2>5. Fall 2026 Acceptance Percent</h2>
+                    <p class="card-question">What percent of entries for Fall 2026 are Acceptances (to two decimal places)?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.fall_2026_acceptance_percent }}%</p>
+                </article>
+
+                <article class="card">
+                    <h2>6. Average GPA of Accepted Fall 2026 Applicants</h2>
+                    <p class="card-question">What is the average GPA of applicants who applied for Fall 2026 who are Acceptances?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.accepted_fall_2026_avg_gpa }}</p>
+                </article>
+
+                <article class="card">
+                    <h2>7. JHU Master's Computer Science Count</h2>
+                    <p class="card-question">How many entries are from applicants who applied to JHU for a masters degrees in Computer Science?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.jhu_masters_cs_count }}</p>
+                </article>
+
+                <article class="card">
+                    <h2>8. 2026 Acceptances Using Downloaded Fields</h2>
+                    <p class="card-question">How many entries from 2026 are acceptances from applicants who applied to Georgetown University, MIT, Stanford University, or Carnegie Mellon University for a PhD in Computer Science?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.q8_downloaded_fields_count }}</p>
+                </article>
+
+                <article class="card">
+                    <h2>9. 2026 Acceptances Using LLM-Generated Fields</h2>
+                    <p class="card-question">Do your numbers for question 8 change if you use LLM Generated Fields (rather than your downloaded fields)?</p>
+                    <p class="answer"><strong>Answer:</strong> {{ results.q9_llm_fields_count }}</p>
+                    <p class="answer-note">No my numbers do not change</p>
+                </article>
+
+                <article class="card wide">
+                    <h2>10. Universities That Appear Most Competitive in Fall 2026</h2>
+                    <p class="note">
+                        Ranked by lowest acceptance rate among universities with at least 10 Fall 2026 entries.
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>University</th>
+                                <th>Total Entries</th>
+                                <th>Accepted</th>
+                                <th>Acceptance Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results.competitive_universities %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[1] }}</td>
+                                <td>{{ row[2] }}</td>
+                                <td>{{ row[3] }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </article>
+
+                <article class="card wide">
+                    <h2>11. Fall 2026 Acceptance Rate by Degree Type</h2>
+                    <p class="note">
+                        This compares Fall 2026 acceptance rates across degree types with at least 10 entries.
+                    </p>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Degree Type</th>
+                                <th>Total Entries</th>
+                                <th>Accepted</th>
+                                <th>Acceptance Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in results.degree_acceptance_rates %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[1] }}</td>
+                                <td>{{ row[2] }}</td>
+                                <td>{{ row[3] }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </article>
+
+            </section>
+        </section>
+
+        <!-- Exploring the Dataset Tab -->
+        <section id="explore-tab" class="tab-content">
+            <section class="dashboard-panel">
+                <div class="dashboard-header">
+                    <div>
+                        <p class="eyebrow">Interactive Dashboard</p>
+                        <h2>Explore the Dataset</h2>
+                        <p class="note">
+                            Use the filters below to explore subsets of the Grad Café applicant data.
+                            The dashboard metrics update dynamically from PostgreSQL.
+                        </p>
+                    </div>
+                    <a class="clear-link" href="{{ url_for('analysis') }}">Clear Filters</a>
+                </div>
+
+                <form class="filter-form" method="get" action="{{ url_for('analysis') }}">
+                    <input type="hidden" name="tab" value="explore">
+
+                    <div class="filter-group">
+                        <label for="term">Term</label>
+                        <select name="term" id="term">
+                            <option value="">All Terms</option>
+                            {% for term in filter_options.terms %}
+                                <option value="{{ term }}" {% if filters.term == term %}selected{% endif %}>
+                                    {{ term }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="degree">Degree</label>
+                        <select name="degree" id="degree">
+                            <option value="">All Degrees</option>
+                            {% for degree in filter_options.degrees %}
+                                <option value="{{ degree }}" {% if filters.degree == degree %}selected{% endif %}>
+                                    {{ degree }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="status">Status</label>
+                        <select name="status" id="status">
+                            <option value="">All Statuses</option>
+                            {% for status in filter_options.statuses %}
+                                <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>
+                                    {{ status }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <label for="applicant_type">Applicant Type</label>
+                        <select name="applicant_type" id="applicant_type">
+                            <option value="">All Applicant Types</option>
+                            {% for applicant_type in filter_options.applicant_types %}
+                                <option value="{{ applicant_type }}" {% if filters.applicant_type == applicant_type %}selected{% endif %}>
+                                    {{ applicant_type }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-group wide-filter">
+                        <label for="university">University</label>
+                        <select name="university" id="university">
+                            <option value="">All Universities</option>
+                            {% for university in filter_options.universities %}
+                                <option value="{{ university }}" {% if filters.university == university %}selected{% endif %}>
+                                    {{ university }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit">Apply Filters</button>
+                    </div>
+                </form>
+
+                <div class="dashboard-metrics">
+                    <article class="metric-card">
+                        <p>Filtered Entries</p>
+                        <strong>{{ dashboard.filtered_count }}</strong>
+                    </article>
+
+                    <article class="metric-card">
+                        <p>Acceptance Rate</p>
+                        <strong>
+                            {% if dashboard.acceptance_rate is not none %}
+                                {{ dashboard.acceptance_rate }}%
+                            {% else %}
+                                N/A
+                            {% endif %}
+                        </strong>
+                    </article>
+
+                    <article class="metric-card">
+                        <p>Average GPA</p>
+                        <strong>{{ dashboard.average_gpa if dashboard.average_gpa is not none else "N/A" }}</strong>
+                    </article>
+
+                    <article class="metric-card">
+                        <p>Average GRE Quant</p>
+                        <strong>{{ dashboard.average_gre_quant if dashboard.average_gre_quant is not none else "N/A" }}</strong>
+                    </article>
+
+                    <article class="metric-card">
+                        <p>Average GRE Verbal</p>
+                        <strong>{{ dashboard.average_gre_verbal if dashboard.average_gre_verbal is not none else "N/A" }}</strong>
+                    </article>
+
+                    <article class="metric-card">
+                        <p>Average GRE AW</p>
+                        <strong>{{ dashboard.average_gre_aw if dashboard.average_gre_aw is not none else "N/A" }}</strong>
+                    </article>
+                </div>
+
+                <div class="dashboard-table">
+                    <h3>Top Universities in Current Filter</h3>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>University</th>
+                                <th>Total Entries</th>
+                                <th>Accepted</th>
+                                <th>Acceptance Rate</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in dashboard.top_universities %}
+                            <tr>
+                                <td>{{ row[0] }}</td>
+                                <td>{{ row[1] }}</td>
+                                <td>{{ row[2] }}</td>
+                                <td>
+                                    {% if row[3] is not none %}
+                                        {{ row[3] }}%
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="filtered-analysis">
+                <div class="analysis-grid">
+                    <article class="card wide">
+                        <h2>Most Competitive Universities in Current Filter</h2>
+                        <p class="note">
+                            Ranked by lowest acceptance rate among universities with at least 5 entries in the current filter.
+                        </p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>University</th>
+                                    <th>Total Entries</th>
+                                    <th>Accepted</th>
+                                    <th>Acceptance Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in dashboard.filtered_competitive_universities %}
+                                <tr>
+                                    <td>{{ row[0] }}</td>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>{{ row[3] }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </article>
+
+                    <article class="card wide">
+                        <h2>Degree Acceptance Rate in Current Filter</h2>
+                        <p class="note">
+                            This compares acceptance rates by degree type within the selected filters.
+                        </p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Degree Type</th>
+                                    <th>Total Entries</th>
+                                    <th>Accepted</th>
+                                    <th>Acceptance Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in dashboard.filtered_degree_acceptance_rates %}
+                                <tr>
+                                    <td>{{ row[0] }}</td>
+                                    <td>{{ row[1] }}</td>
+                                    <td>{{ row[2] }}</td>
+                                    <td>{{ row[3] }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </article>
+
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        function showTab(tabId, button) {
+            const tabs = document.querySelectorAll(".tab-content");
+            const buttons = document.querySelectorAll(".tab-button");
+
+            tabs.forEach(tab => tab.classList.remove("active"));
+            buttons.forEach(btn => btn.classList.remove("active"));
+
+            document.getElementById(tabId).classList.add("active");
+            button.classList.add("active");
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("tab") === "explore") {
+            const exploreButton = document.querySelectorAll(".tab-button")[1];
+            showTab("explore-tab", exploreButton);
+        }
+
+        {% if pull_data_running %}
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000);
+        {% endif %}
+
+        function showActionMessage(message, isError = false) {
+            const messageBox = document.getElementById("action-message");
+
+            if (!messageBox) {
+                return;
+            }
+
+            messageBox.textContent = message;
+            messageBox.style.display = "block";
+
+            if (isError) {
+                messageBox.classList.add("error-message");
+            } else {
+                messageBox.classList.remove("error-message");
+            }
+        }
+
+        function attachActionFormHandler(formSelector) {
+            const form = document.querySelector(formSelector);
+
+            if (!form) {
+                return;
+            }
+
+            form.addEventListener("submit", async function(event) {
+                event.preventDefault();
+
+                const response = await fetch(form.action, {
+                    method: "POST"
+                });
+
+                const data = await response.json();
+
+                showActionMessage(data.message, !data.ok);
+
+                if (data.ok) {
+                    setTimeout(function() {
+                        window.location.href = "{{ url_for('analysis') }}?tab=explore";
+                    }, 800);
+                }
+            });
+        }
+
+        attachActionFormHandler('form[action="{{ url_for("pull_data") }}"]');
+        attachActionFormHandler('form[action="{{ url_for("update_analysis") }}"]');
+    </script>
+
+</body>
+</html>
