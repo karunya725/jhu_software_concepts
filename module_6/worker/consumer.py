@@ -14,14 +14,16 @@ PULL_DATA_SCRIPT = BASE_DIR / "module_2_code" / "pull_new_data.py"
 
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbit:5672/")
 
-EXCHANGE_NAME = "gradcafe.tasks"
-QUEUE_NAME = "tasks"
+EXCHANGE_NAME = "tasks"
+QUEUE_NAME = "tasks_q"
 ROUTING_KEY = "tasks"
 
 
 def open_channel():
     """Open RabbitMQ connection and declare durable task infrastructure."""
     parameters = pika.URLParameters(RABBITMQ_URL)
+    parameters.heartbeat = 1800
+    parameters.blocked_connection_timeout = 1800
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
@@ -50,11 +52,11 @@ def open_channel():
 def process_task(message):
     """Process one task message."""
     task_kind = message.get("kind")
-    task_id = message.get("task_id")
+    task_ts = message.get("ts")
+    
+    print(f"Received task {task_kind} at {task_ts}", flush=True)
 
-    print(f"Received task {task_id}: {task_kind}", flush=True)
-
-    if task_kind == "pull_data":
+    if task_kind == "scrape_new_data":
         print("Running Pull Data pipeline in worker...", flush=True)
 
         if not PULL_DATA_SCRIPT.exists():
@@ -69,7 +71,7 @@ def process_task(message):
         print("Pull Data pipeline complete.", flush=True)
         return
 
-    if task_kind == "update_analysis":
+    if task_kind == "recompute_analytics":
         print("Update analysis requested. Current dashboard queries are dynamic.", flush=True)
         print("No materialized summary refresh is needed for this version.", flush=True)
         return
@@ -110,8 +112,8 @@ def main():
 
             channel.start_consuming()
 
-        except pika.exceptions.AMQPConnectionError:
-            print("RabbitMQ is not ready. Retrying in 5 seconds...", flush=True)
+        except pika.exceptions.AMQPError as error:
+            print(f"RabbitMQ connection error: {error}. Retrying in 5 seconds...", flush=True)
             time.sleep(5)
 
 

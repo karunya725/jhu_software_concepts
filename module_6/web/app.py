@@ -1,15 +1,12 @@
 """Flask application for displaying Grad Cafe analysis results."""
 
 import os
-from pathlib import Path
-import subprocess
-import sys
 import threading
 
 import psycopg
 from psycopg import sql
-from flask import Flask, jsonify, redirect, render_template, request, url_for
 from dotenv import load_dotenv
+from flask import Flask, current_app, jsonify, redirect, render_template, request, url_for
 from publisher import publish_task
 
 load_dotenv()
@@ -67,9 +64,10 @@ def create_app(test_config=None):
     @flask_app.route("/pull-data", methods=["POST"])
     def pull_data():
         """
-        Start the incremental data pull pipeline.
+        Queue the incremental data pull pipeline as a RabbitMQ task.
 
-        Returns JSON so tests and the webpage can check whether the pull started.
+        The web tier should not run the scraper directly. It publishes a task
+        and immediately returns HTTP 202 so the worker can process the job.
         """
         global PULL_DATA_RUNNING  # pylint: disable=global-statement
 
@@ -86,13 +84,25 @@ def create_app(test_config=None):
 
             PULL_DATA_RUNNING = True
 
-        task = publish_task(
-            kind="pull_data",
-            payload={
-                "source": "web",
-                "action": "load_seed_or_incremental_data",
-            },
-        )
+        try:
+            publish_task(
+                "scrape_new_data",
+                payload={
+                    "source": "web",
+                    "action": "pull_data",
+                },
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            current_app.logger.exception("Failed to publish scrape_new_data")
+
+            with PULL_DATA_LOCK:
+                PULL_DATA_RUNNING = False
+
+            return jsonify({
+                "ok": False,
+                "error": "publish_failed",
+                "message": "Failed to queue Pull Data task."
+            }), 503
 
         with PULL_DATA_LOCK:
             PULL_DATA_RUNNING = False
@@ -100,7 +110,8 @@ def create_app(test_config=None):
         return jsonify({
             "ok": True,
             "busy": False,
-            "task_id": task["task_id"],
+            "status": "queued",
+            "task": "scrape_new_data",
             "message": (
                 "Pull Data task has been queued. "
                 "The worker will process it in the background."
@@ -110,9 +121,11 @@ def create_app(test_config=None):
     @flask_app.route("/update-analysis", methods=["POST"])
     def update_analysis():
         """
-        Refresh analysis unless Pull Data is currently running.
+        Queue an analysis recompute task.
 
-        Returns JSON so tests and the webpage can check the update status.
+        The current dashboard queries PostgreSQL dynamically, but this endpoint
+        still publishes a RabbitMQ task so the web buttons follow the assignment
+        microservice pattern.
         """
         if PULL_DATA_RUNNING:
             return jsonify({
@@ -124,18 +137,28 @@ def create_app(test_config=None):
                 )
             }), 409
 
-        task = publish_task(
-            kind="update_analysis",
-            payload={
-                "source": "web",
-                "action": "refresh_analysis",
-            },
-        )
+        try:
+            publish_task(
+                "recompute_analytics",
+                payload={
+                    "source": "web",
+                    "action": "update_analysis",
+                },
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            current_app.logger.exception("Failed to publish recompute_analytics")
+
+            return jsonify({
+                "ok": False,
+                "error": "publish_failed",
+                "message": "Failed to queue Update Analysis task."
+            }), 503
 
         return jsonify({
             "ok": True,
             "busy": False,
-            "task_id": task["task_id"],
+            "status": "queued",
+            "task": "recompute_analytics",
             "message": "Update Analysis task has been queued."
         }), 202
 
@@ -173,9 +196,6 @@ def get_connection():
         port=DB_PORT
     )
 
-
-BASE_DIR = Path(__file__).resolve().parent
-PULL_DATA_SCRIPT = BASE_DIR / "module_2_code" / "pull_new_data.py"
 
 NORMALIZED_GPA_SQL = """
     CASE
@@ -744,29 +764,6 @@ def get_analysis_results():
             )
 
     return results
-
-
-def run_pull_data_pipeline():
-    """Run the incremental Pull Data pipeline in the background."""
-    global PULL_DATA_RUNNING  # pylint: disable=global-statement
-
-    try:
-        print("Starting Pull Data pipeline from Flask...")
-
-        subprocess.run(
-            [sys.executable, str(PULL_DATA_SCRIPT)],
-            check=True,
-            cwd=BASE_DIR
-        )
-
-        print("Pull Data pipeline finished successfully.")
-
-    except subprocess.CalledProcessError as error:
-        print(f"Pull Data pipeline failed: {error}")
-
-    finally:
-        with PULL_DATA_LOCK:
-            PULL_DATA_RUNNING = False
 
 
 app = create_app()

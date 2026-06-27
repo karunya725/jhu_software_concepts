@@ -2,20 +2,20 @@
 
 import json
 import os
-import uuid
 from datetime import datetime, timezone
 
 import pika
 
 
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbit:5672/")
-EXCHANGE_NAME = "gradcafe.tasks"
-QUEUE_NAME = "tasks"
+
+EXCHANGE_NAME = "tasks"
+QUEUE_NAME = "tasks_q"
 ROUTING_KEY = "tasks"
 
 
-def open_channel():
-    """Open a RabbitMQ connection and declare the task exchange/queue."""
+def _open_channel():
+    """Open RabbitMQ connection and declare durable task infrastructure."""
     parameters = pika.URLParameters(RABBITMQ_URL)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
@@ -41,31 +41,32 @@ def open_channel():
 
 
 def publish_task(kind, payload=None, headers=None):
-    """Publish a durable task message to RabbitMQ."""
+    """Publish a durable JSON task message to RabbitMQ."""
     payload = payload or {}
     headers = headers or {}
 
-    message = {
-        "task_id": str(uuid.uuid4()),
-        "kind": kind,
-        "payload": payload,
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
+    body = json.dumps(
+        {
+            "kind": kind,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "payload": payload,
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
 
-    connection, channel = open_channel()
+    connection, channel = _open_channel()
 
     try:
         channel.basic_publish(
             exchange=EXCHANGE_NAME,
             routing_key=ROUTING_KEY,
-            body=json.dumps(message).encode("utf-8"),
+            body=body,
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",
                 headers=headers,
             ),
+            mandatory=False,
         )
     finally:
         connection.close()
-
-    return message
