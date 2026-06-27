@@ -45,3 +45,12 @@ module_*/src/module_2_code/llm_hosting/models/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local downloaded LLM model folders copied into worker
+module_*/worker/module_2_code/llm_hosting/models/
+
+# Generated incremental pipeline files inside worker
+module_*/worker/module_2_code/new_raw_applicant_data.json
+module_*/worker/module_2_code/new_applicant_data.json
+module_*/worker/module_2_code/new_llm_extend_applicant_data.json
+module_*/worker/module_2_code/new_llm_extend_applicant_data.jsonl

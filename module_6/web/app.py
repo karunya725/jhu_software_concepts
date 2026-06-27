@@ -10,6 +10,7 @@ import psycopg
 from psycopg import sql
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 from dotenv import load_dotenv
+from publisher import publish_task
 
 load_dotenv()
 
@@ -85,15 +86,24 @@ def create_app(test_config=None):
 
             PULL_DATA_RUNNING = True
 
-        pipeline_thread = threading.Thread(target=run_pull_data_pipeline)
-        pipeline_thread.start()
+        task = publish_task(
+            kind="pull_data",
+            payload={
+                "source": "web",
+                "action": "load_seed_or_incremental_data",
+            },
+        )
+
+        with PULL_DATA_LOCK:
+            PULL_DATA_RUNNING = False
 
         return jsonify({
             "ok": True,
             "busy": False,
+            "task_id": task["task_id"],
             "message": (
-                "Pull Data has started. "
-                "The app is checking Grad Café for new records."
+                "Pull Data task has been queued. "
+                "The worker will process it in the background."
             )
         }), 202
 
@@ -114,11 +124,20 @@ def create_app(test_config=None):
                 )
             }), 409
 
+        task = publish_task(
+            kind="update_analysis",
+            payload={
+                "source": "web",
+                "action": "refresh_analysis",
+            },
+        )
+
         return jsonify({
             "ok": True,
             "busy": False,
-            "message": "Analysis updated using the current PostgreSQL database."
-        }), 200
+            "task_id": task["task_id"],
+            "message": "Update Analysis task has been queued."
+        }), 202
 
     return flask_app
 
