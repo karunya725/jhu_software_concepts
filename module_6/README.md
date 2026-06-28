@@ -6,6 +6,13 @@ Due Date: 28 Jun 2026, 11:59PM
 GitHub SSH URL:
 git@github.com:karunya725/jhu_software_concepts.git
 
+Docker Hub Repository:
+https://hub.docker.com/r/karunya725/module_6
+
+Docker Hub Images:
+- `karunya725/module_6:web`
+- `karunya725/module_6:worker`
+
 ## Overview
 
 In this module, I refactored the Grad Café PostgreSQL + Flask analysis project into a Docker Compose microservice application. The project now runs as separate `web`, `worker`, `db`, and `rabbit` services. The Flask web service handles the dashboard and publishes task messages, while the worker service consumes RabbitMQ messages and runs the long-running data pipeline outside the web tier.
