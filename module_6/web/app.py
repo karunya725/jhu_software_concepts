@@ -1,13 +1,13 @@
-"""Flask application for displaying Grad Cafe analysis results."""
+﻿"""Flask application for displaying Grad Cafe analysis results."""
 
 import os
 import threading
 
-import psycopg
 from psycopg import sql
 from dotenv import load_dotenv
 from flask import Flask, current_app, jsonify, redirect, render_template, request, url_for
 from publisher import publish_task
+from shared.db_connection import get_connection
 
 load_dotenv()
 
@@ -163,38 +163,6 @@ def create_app(test_config=None):
         }), 202
 
     return flask_app
-
-
-# ------------------------------
-# Database connection settings
-# ------------------------------
-
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-DB_NAME = os.environ.get("DB_NAME", "gradcafe_db")
-DB_USER = os.environ.get("DB_USER", "postgres")
-DB_PASSWORD = os.environ.get("DB_PASSWORD", "")
-DB_HOST = os.environ.get("DB_HOST", "localhost")
-DB_PORT = os.environ.get("DB_PORT", "5432")
-
-
-def get_connection():
-    """
-    Create a PostgreSQL database connection.
-
-    If DATABASE_URL is available, it is used first. Otherwise, the app falls
-    back to individual environment variables for local development.
-    """
-    if DATABASE_URL:
-        return psycopg.connect(DATABASE_URL)
-
-    return psycopg.connect(
-        dbname=DB_NAME,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT
-    )
 
 
 NORMALIZED_GPA_SQL = """

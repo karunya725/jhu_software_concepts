@@ -11,10 +11,11 @@ RUN apt-get update \
 RUN groupadd --system appuser \
     && useradd --system --gid appuser appuser
 
-COPY requirements.txt .
+COPY worker/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY worker/ .
+COPY shared/ shared/
 
 RUN chown -R appuser:appuser /app \
     && chmod -R u+rwX /app

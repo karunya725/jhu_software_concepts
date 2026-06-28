@@ -1,5 +1,5 @@
-"""
-Database utility functions for testing and inserting Grad Café applicant records.
+﻿"""
+Database utility functions for testing and inserting Grad CafÃ© applicant records.
 """
 
 REQUIRED_COLUMNS = [

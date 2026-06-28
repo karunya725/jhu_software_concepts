@@ -1,4 +1,4 @@
-"""
+﻿"""
 Run LLM Enrichment on New Data Only
 
 This script runs the copied Module 2 LLM cleaner only on newly cleaned records.
@@ -33,6 +33,8 @@ LLM_APP_FILE = LLM_DIR / "app.py"
 
 
 def load_json_list(path):
+    """Load a JSON list from disk, returning an empty list if the file is missing."""
+
     if not path.exists():
         print(f"{path.name} does not exist. Using empty list.")
         return []
@@ -42,6 +44,8 @@ def load_json_list(path):
 
 
 def save_json_list(path, records):
+    """Save records as formatted JSON."""
+
     with path.open("w", encoding="utf-8") as file:
         json.dump(records, file, indent=2, ensure_ascii=False)
 
@@ -112,6 +116,8 @@ def run_llm_app():
 
 
 def main():
+    """Run LLM enrichment on newly cleaned Grad Cafe records."""
+
     print("Preparing to run LLM on newly cleaned data...")
 
     new_clean_records = load_json_list(NEW_CLEAN_FILE)

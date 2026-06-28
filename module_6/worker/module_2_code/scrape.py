@@ -1,29 +1,14 @@
-"""
-Module 2 / Module 3 - Grad Cafe Scraper
+﻿"""Module 2 / Module 3 - Grad Cafe Scraper."""
 
-This file handles scraping only:
-- Builds Grad Cafe URLs using urllib
-- Requests public Grad Cafe survey pages
-- Extracts raw applicant records from the embedded page JSON
-- Saves raw applicant records to raw_applicant_data.json
-
-For Module 3 Part B:
-- It checks recent Grad Cafe pages for new records
-- Saves only newly found records to new_raw_applicant_data.json
-- Appends those new records to raw_applicant_data.json
-- Avoids duplicates using Grad Cafe record IDs
-
-Data cleaning is handled separately in clean.py / clean_new_data.py.
-"""
-
-from pathlib import Path
-from urllib.parse import urlencode, urljoin
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
-from bs4 import BeautifulSoup
 import html
 import json
 import time
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, urljoin
+from urllib.request import Request, urlopen
+from module_2_code.json_helpers import load_json_file, save_json_file
+
+from bs4 import BeautifulSoup
 
 
 BASE_URL = "https://www.thegradcafe.com/"
@@ -34,9 +19,7 @@ NEW_RAW_OUTPUT_FILE = "new_raw_applicant_data.json"
 
 
 def build_gradcafe_url(page=1, program=None):
-    """
-    Build a Grad Cafe survey URL using urllib tools.
-    """
+    """Build a Grad Cafe survey URL using urllib tools."""
     survey_url = urljoin(BASE_URL, SURVEY_PATH)
 
     query_params = {}
@@ -65,7 +48,10 @@ def fetch_page(url):
     request = Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 (compatible; student data collection script; educational use)"
+            "User-Agent": (
+                "Mozilla/5.0 "
+                "(compatible; student data collection script; educational use)"
+            )
         },
     )
 
@@ -89,7 +75,10 @@ def fetch_page(url):
         print(f"HTTP error: {error.code}")
 
         if error.code in [403, 429, 503]:
-            print("The site blocked, rate-limited, or rejected the request. Stopping.")
+            print(
+                "The site blocked, rate-limited, or rejected the request. "
+                "Stopping."
+            )
 
         return None
 
@@ -103,9 +92,7 @@ def fetch_page(url):
 
 
 def fetch_page_with_retries(url, max_retries=3, delay_seconds=10):
-    """
-    Fetch a page with limited polite retries.
-    """
+    """Fetch a page with limited polite retries."""
     for attempt_number in range(1, max_retries + 1):
         print(f"Request attempt {attempt_number} of {max_retries}")
 
@@ -115,7 +102,10 @@ def fetch_page_with_retries(url, max_retries=3, delay_seconds=10):
             return page_html
 
         if attempt_number < max_retries:
-            print(f"Request failed. Waiting {delay_seconds} seconds before retrying...")
+            print(
+                f"Request failed. Waiting {delay_seconds} seconds "
+                "before retrying..."
+            )
             time.sleep(delay_seconds)
 
     print("All retry attempts failed. Stopping scrape.")
@@ -123,9 +113,7 @@ def fetch_page_with_retries(url, max_retries=3, delay_seconds=10):
 
 
 def _extract_page_json(page_html):
-    """
-    Extract JSON from the page's data-page attribute.
-    """
+    """Extract JSON from the page's data-page attribute."""
     soup = BeautifulSoup(page_html, "html.parser")
 
     app_div = soup.find("div", id="app")
@@ -150,48 +138,27 @@ def _extract_page_json(page_html):
 
 
 def _extract_raw_records(page_json):
-    """
-    Extract the raw applicant records from the page JSON.
-    """
-    return (
-        page_json
-        .get("props", {})
-        .get("results", {})
-        .get("data", [])
-    )
+    """Extract the raw applicant records from the page JSON."""
+    return page_json.get("props", {}).get("results", {}).get("data", [])
 
 
 def load_data(filename):
-    """
-    Load JSON data from a file.
-    Returns an empty list if the file does not exist yet.
-    """
-    input_path = Path(filename)
+    """Load JSON data from a file."""
+    data = load_json_file(filename, default=[])
 
-    if not input_path.exists():
-        print(f"{filename} does not exist yet. Starting with an empty list.")
-        return []
+    if not data:
+        print(f"{filename} does not exist yet or is empty.")
 
-    with input_path.open("r", encoding="utf-8") as file:
-        return json.load(file)
+    return data
 
 
 def save_data(data, filename):
-    """
-    Save records as JSON.
-    """
-    output_path = Path(filename)
-
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
-
-    print(f"Saved {len(data)} records to {output_path}")
+    """Save records as JSON."""
+    save_json_file(data, filename)
 
 
 def _get_seen_ids(records):
-    """
-    Build a set of existing Grad Cafe record IDs.
-    """
+    """Build a set of existing Grad Cafe record IDs."""
     seen_ids = set()
 
     for record in records:
@@ -205,9 +172,10 @@ def _get_seen_ids(records):
 
 def scrape_data(start_page=1, max_pages=1550, target_records=30000):
     """
-    Full scrape mode.
+    Run the full scrape mode.
 
-    It loads existing raw records, avoids duplicates, and saves to raw_applicant_data.json.
+    This loads existing raw records, avoids duplicates, and saves to
+    raw_applicant_data.json.
     """
     all_raw_records = load_data(RAW_OUTPUT_FILE)
     seen_ids = _get_seen_ids(all_raw_records)
@@ -246,7 +214,10 @@ def scrape_data(start_page=1, max_pages=1550, target_records=30000):
                 new_records.append(record)
                 seen_ids.add(record_id)
 
-        print(f"Found {len(raw_records)} raw applicant records on page {page_number}.")
+        print(
+            f"Found {len(raw_records)} raw applicant records "
+            f"on page {page_number}."
+        )
         print(f"New records added from this page: {len(new_records)}")
 
         all_raw_records.extend(new_records)
@@ -263,14 +234,63 @@ def scrape_data(start_page=1, max_pages=1550, target_records=30000):
     return all_raw_records
 
 
+def collect_new_records_from_page(page_number, seen_ids, program):
+    """Collect raw count and new records from one Grad Cafe page."""
+    url = build_gradcafe_url(page=page_number, program=program)
+
+    time.sleep(3)
+
+    page_html = fetch_page_with_retries(url)
+
+    if page_html is None:
+        print("No HTML was collected. Stopping incremental scrape.")
+        return None
+
+    page_json = _extract_page_json(page_html)
+
+    if page_json is None:
+        print("No page JSON was extracted. Stopping incremental scrape.")
+        return None
+
+    raw_records = _extract_raw_records(page_json)
+
+    if not raw_records:
+        print("No records found. Stopping incremental scrape.")
+        return 0, []
+
+    new_records_this_page = []
+
+    for record in raw_records:
+        record_id = record.get("id")
+
+        if record_id is not None and record_id not in seen_ids:
+            new_records_this_page.append(record)
+            seen_ids.add(record_id)
+
+    return len(raw_records), new_records_this_page
+
+
+def update_empty_page_streak(new_records_this_page, consecutive_empty_pages):
+    """Update the consecutive empty page counter for incremental scraping."""
+    if new_records_this_page:
+        return 0
+
+    updated_count = consecutive_empty_pages + 1
+    print(
+        "No new records on this page. "
+        f"Empty page streak: {updated_count}"
+    )
+    return updated_count
+
+
 def scrape_new_data(
     start_page=1,
     max_pages=10,
     stop_after_empty_pages=2,
-    program="Computer Science"
+    program="Computer Science",
 ):
     """
-    Incremental scrape mode
+    Run incremental scrape mode.
 
     This function:
     1. Loads the existing full raw dataset from raw_applicant_data.json.
@@ -295,56 +315,35 @@ def scrape_new_data(
     for page_number in range(start_page, max_pages + 1):
         print(f"\nChecking recent page {page_number} of {max_pages}...")
 
-        url = build_gradcafe_url(page=page_number, program=program)
+        page_result = collect_new_records_from_page(
+            page_number,
+            seen_ids,
+            program,
+        )
 
-        time.sleep(3)
-
-        page_html = fetch_page_with_retries(url)
-
-        if page_html is None:
-            print("No HTML was collected. Stopping incremental scrape.")
+        if page_result is None:
             break
 
-        page_json = _extract_page_json(page_html)
+        raw_record_count, new_records_this_page = page_result
 
-        if page_json is None:
-            print("No page JSON was extracted. Stopping incremental scrape.")
-            break
-
-        raw_records = _extract_raw_records(page_json)
-
-        if not raw_records:
-            print("No raw records found. Stopping incremental scrape.")
-            break
-
-        new_records_this_page = []
-
-        for record in raw_records:
-            record_id = record.get("id")
-
-            if record_id is not None and record_id not in seen_ids:
-                new_records_this_page.append(record)
-                seen_ids.add(record_id)
-
-        print(f"Found {len(raw_records)} records on page {page_number}.")
+        print(f"Found {raw_record_count} records on page {page_number}.")
         print(f"New records found on this page: {len(new_records_this_page)}")
 
         if new_records_this_page:
             all_new_records.extend(new_records_this_page)
-            consecutive_empty_pages = 0
-        else:
-            consecutive_empty_pages += 1
-            print(f"No new records on this page. Empty page streak: {consecutive_empty_pages}")
+
+        consecutive_empty_pages = update_empty_page_streak(
+            new_records_this_page,
+            consecutive_empty_pages,
+        )
 
         if consecutive_empty_pages >= stop_after_empty_pages:
             print(
-                f"Found {stop_after_empty_pages} consecutive pages with no new records. "
-                "Stopping incremental scrape."
+                f"Found {stop_after_empty_pages} consecutive pages "
+                "with no new records. Stopping incremental scrape."
             )
             break
 
-    # Save the new-only raw file every time.
-    # If there are no new records, this file will contain [].
     save_data(all_new_records, NEW_RAW_OUTPUT_FILE)
 
     if all_new_records:
@@ -362,11 +361,9 @@ def scrape_new_data(
 
 
 if __name__ == "__main__":
-    # Default behavior for Module 3 Part B:
-    # check for new records only.
     scrape_new_data(
         start_page=1,
         max_pages=10,
         stop_after_empty_pages=2,
-        program="Computer Science"
+        program="Computer Science",
     )

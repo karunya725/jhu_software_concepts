@@ -1,4 +1,4 @@
-"""
+﻿"""
 Clean New Grad Cafe Data
 
 This file cleans only the newly scraped raw records.
@@ -13,9 +13,8 @@ This keeps the Pull Data workflow efficient because it avoids cleaning
 the entire raw dataset again.
 """
 
-from pathlib import Path
 from urllib.parse import urljoin
-import json
+from module_2_code.json_helpers import load_json_file, save_json_file
 
 
 BASE_URL = "https://www.thegradcafe.com/"
@@ -148,30 +147,18 @@ def _parse_entry(raw_record):
 
 
 def load_data(filename):
-    """
-    Load JSON data from a file.
-    Returns an empty list if the input file does not exist.
-    """
-    input_path = Path(filename)
+    """Load JSON data from a file."""
+    records = load_json_file(filename, default=[])
 
-    if not input_path.exists():
-        print(f"{filename} does not exist. Nothing to clean.")
-        return []
+    if not records:
+        print(f"{filename} does not exist or has no records. Nothing to clean.")
 
-    with input_path.open("r", encoding="utf-8") as file:
-        return json.load(file)
+    return records
 
 
 def save_data(data, filename):
-    """
-    Save data as valid JSON.
-    """
-    output_path = Path(filename)
-
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
-
-    print(f"Saved {len(data)} cleaned records to {output_path}")
+    """Save cleaned records as valid JSON."""
+    save_json_file(data, filename)
 
 
 def clean_data(raw_records):
@@ -183,13 +170,15 @@ def clean_data(raw_records):
     for raw_record in raw_records:
         try:
             cleaned_records.append(_parse_entry(raw_record))
-        except Exception as error:
+        except (AttributeError, TypeError, ValueError, KeyError) as error:
             print(f"Skipping one record due to parsing error: {error}")
 
     return cleaned_records
 
 
 def main():
+    """Clean newly scraped Grad Cafe records."""
+
     print("Cleaning newly scraped Grad Cafe records...")
 
     new_raw_data = load_data(NEW_RAW_INPUT_FILE)

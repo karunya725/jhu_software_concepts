@@ -1,10 +1,12 @@
-"""RabbitMQ publisher for web-triggered background tasks."""
+﻿"""RabbitMQ publisher for web-triggered background tasks."""
 
 import json
 import os
 from datetime import datetime, timezone
 
 import pika
+
+from shared.rabbitmq_helpers import open_task_channel
 
 
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@rabbit:5672/")
@@ -16,28 +18,12 @@ ROUTING_KEY = "tasks"
 
 def _open_channel():
     """Open RabbitMQ connection and declare durable task infrastructure."""
-    parameters = pika.URLParameters(RABBITMQ_URL)
-    connection = pika.BlockingConnection(parameters)
-    channel = connection.channel()
-
-    channel.exchange_declare(
-        exchange=EXCHANGE_NAME,
-        exchange_type="direct",
-        durable=True,
+    return open_task_channel(
+        RABBITMQ_URL,
+        EXCHANGE_NAME,
+        QUEUE_NAME,
+        ROUTING_KEY,
     )
-
-    channel.queue_declare(
-        queue=QUEUE_NAME,
-        durable=True,
-    )
-
-    channel.queue_bind(
-        exchange=EXCHANGE_NAME,
-        queue=QUEUE_NAME,
-        routing_key=ROUTING_KEY,
-    )
-
-    return connection, channel
 
 
 def publish_task(kind, payload=None, headers=None):

@@ -1,4 +1,4 @@
-"""
+﻿"""
 Pull New Data Pipeline
 
 This script is the single command Flask will call when the user clicks
@@ -6,7 +6,7 @@ the "Pull Data" button.
 
 New robust pipeline:
 1. scrape.py
-   - checks recent Grad Café pages
+   - checks recent Grad CafÃ© pages
    - saves only new raw records to new_raw_applicant_data.json
    - appends new raw records into raw_applicant_data.json
 
@@ -57,6 +57,8 @@ def run_step(script_path):
 
 
 def main():
+    """Run the full Pull Data pipeline."""
+
     print("Starting Pull Data pipeline...")
 
     for script_path in PIPELINE_STEPS:

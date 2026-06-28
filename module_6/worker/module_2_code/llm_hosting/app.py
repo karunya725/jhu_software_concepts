@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Flask + tiny local LLM standardizer with incremental JSONL CLI output."""
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ MODEL_FILE = os.getenv(
 
 N_THREADS = int(os.getenv("N_THREADS", str(os.cpu_count() or 2)))
 N_CTX = int(os.getenv("N_CTX", "2048"))
-N_GPU_LAYERS = int(os.getenv("N_GPU_LAYERS", "0"))  # 0 → CPU-only
+N_GPU_LAYERS = int(os.getenv("N_GPU_LAYERS", "0"))  # 0 â†’ CPU-only
 
 CANON_UNIS_PATH = os.getenv("CANON_UNIS_PATH", "canon_universities.txt")
 CANON_PROGS_PATH = os.getenv("CANON_PROGS_PATH", "canon_programs.txt")
@@ -58,7 +58,7 @@ ABBREV_UNI: Dict[str, str] = {
 COMMON_UNI_FIXES: Dict[str, str] = {
     "McGiill University": "McGill University",
     "Mcgill University": "McGill University",
-    # Normalize 'Of' → 'of'
+    # Normalize 'Of' â†’ 'of'
     "University Of British Columbia": "University of British Columbia",
 }
 
@@ -153,7 +153,7 @@ def _split_fallback(text: str) -> Tuple[str, str]:
     ):
         uni = "University of British Columbia"
 
-    # Title-case program; normalize 'Of' → 'of' for universities
+    # Title-case program; normalize 'Of' â†’ 'of' for universities
     prog = prog.title()
     if uni:
         uni = re.sub(r"\bOf\b", "of", uni.title())
@@ -194,7 +194,7 @@ def _post_normalize_university(uni: str) -> str:
     # Common spelling fixes
     u = COMMON_UNI_FIXES.get(u, u)
 
-    # Normalize 'Of' → 'of'
+    # Normalize 'Of' â†’ 'of'
     if u:
         u = re.sub(r"\bOf\b", "of", u.title())
 
@@ -240,7 +240,7 @@ def _call_llm(program_text: str) -> Dict[str, str]:
         obj = json.loads(match.group(0) if match else text)
         std_prog = str(obj.get("standardized_program", "")).strip()
         std_uni = str(obj.get("standardized_university", "")).strip()
-    except Exception:
+    except (AttributeError, json.JSONDecodeError, TypeError, ValueError):
         std_prog, std_uni = _split_fallback(program_text)
 
     std_prog = _post_normalize_program(std_prog)

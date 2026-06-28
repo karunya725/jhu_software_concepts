@@ -5,10 +5,11 @@ WORKDIR /app
 RUN groupadd --system appuser \
     && useradd --system --gid appuser appuser
 
-COPY requirements.txt .
+COPY web/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --chown=appuser:appuser . .
+COPY --chown=appuser:appuser web/ .
+COPY --chown=appuser:appuser shared/ shared/
 
 USER appuser
 
